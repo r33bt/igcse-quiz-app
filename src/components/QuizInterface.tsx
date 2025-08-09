@@ -93,9 +93,27 @@ export default function QuizInterface({
           .eq('id', user.id)
       }
 
-      // Update or create user progress
-      const totalAnswered = (userProgress?.total_questions_answered || 0) + 1
-      const correctAnswers = (userProgress?.correct_answers || 0) + (correct ? 1 : 0)
+      // Update or create user progress - fix counting bug by using database increment
+      const { data: currentProgress } = await supabase
+        .from('user_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('subject_id', subject.id)
+        .single()
+
+      let totalAnswered: number
+      let correctAnswers: number
+
+      if (currentProgress) {
+        // Increment existing progress
+        totalAnswered = currentProgress.total_questions_answered + 1
+        correctAnswers = currentProgress.correct_answers + (correct ? 1 : 0)
+      } else {
+        // Create new progress record
+        totalAnswered = 1
+        correctAnswers = correct ? 1 : 0
+      }
+
       const newAccuracy = (correctAnswers / totalAnswered) * 100
 
       await supabase
