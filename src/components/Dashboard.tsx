@@ -46,6 +46,12 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
                 <span className="font-semibold">Level {profile?.level || 1}</span>
               </div>
               <button
+                onClick={() => router.push('/guide')}
+                className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                📖 Guide
+              </button>
+              <button
                 onClick={handleSignOut}
                 disabled={loading}
                 className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors"
@@ -63,7 +69,27 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
             Welcome back, {profile?.full_name || user.email?.split('@')[0] || 'Student'}!
           </h2>
-          <p className="text-gray-600">Ready to boost your IGCSE knowledge?</p>
+          <p className="text-gray-600 mb-4">Ready to boost your IGCSE knowledge?</p>
+          
+          {/* Quick Start Guide */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex items-start space-x-3">
+              <div className="text-blue-500 text-xl">💡</div>
+              <div>
+                <h3 className="font-semibold text-blue-900 mb-1">New to the app?</h3>
+                <p className="text-blue-700 text-sm mb-2">
+                  Click on a subject below to start practicing! You earn XP for every question (even wrong answers), 
+                  with bonus points for speed and accuracy.
+                </p>
+                <button
+                  onClick={() => router.push('/guide')}
+                  className="text-blue-600 hover:text-blue-700 font-medium text-sm underline"
+                >
+                  Read the complete guide →
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Stats Cards */}

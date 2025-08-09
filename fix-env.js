@@ -1,0 +1,7 @@
+console.log('Correct Supabase URL:')
+console.log('https://nkcjwrksvmjzqsatwkac.supabase.co')
+console.log('Length:', 'https://nkcjwrksvmjzqsatwkac.supabase.co'.length)
+console.log('')
+console.log('The environment variable is truncated!')
+console.log('Expected: 47 characters')
+console.log('Actual: 40 characters')
