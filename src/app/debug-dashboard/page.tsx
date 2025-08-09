@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export default function DebugDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -43,18 +45,18 @@ export default function DebugDashboard() {
           </div>
           
           <div className="mt-6">
-            <a 
-              href="/" 
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 mr-4"
+            <Link 
+              href="/"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 mr-4 inline-block"
             >
               Try Main Dashboard
-            </a>
-            <a 
-              href="/guide" 
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+            </Link>
+            <Link 
+              href="/guide"
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 inline-block"
             >
               View User Guide
-            </a>
+            </Link>
           </div>
         </div>
       </div>
