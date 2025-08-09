@@ -11,38 +11,51 @@ export default async function Home() {
     redirect('/login')
   }
 
-  // Temporarily use minimal data to debug the issue
-  const mockProfile = {
-    id: user.id,
-    email: user.email || null,
-    full_name: user.user_metadata?.full_name || null,
-    avatar_url: user.user_metadata?.avatar_url || null,
-    xp: 0,
-    level: 1,
-    study_streak: 0,
-    last_study_date: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+  // Get or create user profile
+  let { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  // Create profile if it doesn't exist
+  if (!profile) {
+    const { data: newProfile, error: insertError } = await supabase
+      .from('profiles')
+      .insert({
+        id: user.id,
+        email: user.email,
+        full_name: user.user_metadata?.full_name,
+        avatar_url: user.user_metadata?.avatar_url
+      })
+      .select()
+      .single()
+
+    if (insertError) {
+      console.error('Error creating profile:', insertError)
+    } else {
+      profile = newProfile
+    }
   }
 
-  const mockSubjects = [
-    {
-      id: '30707aa5-bb17-4555-a2a9-77155f3c77c7',
-      name: 'Mathematics',
-      code: 'MATH',
-      description: 'IGCSE Mathematics',
-      icon: 'calculator',
-      color: '#3B82F6',
-      created_at: new Date().toISOString()
-    }
-  ]
+  // Get subjects
+  const { data: subjects } = await supabase
+    .from('subjects')
+    .select('*')
+    .order('name')
+
+  // Get user progress
+  const { data: userProgress } = await supabase
+    .from('user_progress')
+    .select('*')
+    .eq('user_id', user.id)
 
   return (
     <Dashboard 
       user={user} 
-      profile={mockProfile} 
-      subjects={mockSubjects} 
-      userProgress={[]} 
+      profile={profile} 
+      subjects={subjects || []} 
+      userProgress={userProgress || []} 
     />
   )
 }

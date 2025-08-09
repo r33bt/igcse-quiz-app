@@ -16,66 +16,64 @@ export default async function QuizPage({ params }: QuizPageProps) {
     redirect('/login')
   }
 
-  // Mock data for debugging - temporarily avoid database queries
-  const mockSubject = {
-    id: subjectId,
-    name: 'Mathematics',
-    code: 'MATH',
-    description: 'IGCSE Mathematics',
-    icon: 'calculator',
-    color: '#3B82F6',
-    created_at: new Date().toISOString()
+  // Get subject details
+  const { data: subject } = await supabase
+    .from('subjects')
+    .select('*')
+    .eq('id', subjectId)
+    .single()
+
+  if (!subject) {
+    redirect('/')
   }
 
-  const mockProfile = {
-    id: user.id,
-    email: user.email || null,
-    full_name: user.user_metadata?.full_name || null,
-    avatar_url: user.user_metadata?.avatar_url || null,
-    xp: 20,
-    level: 1,
-    study_streak: 0,
-    last_study_date: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+  // Get or create user profile
+  let { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (!profile) {
+    const { data: newProfile } = await supabase
+      .from('profiles')
+      .insert({
+        id: user.id,
+        email: user.email,
+        full_name: user.user_metadata?.full_name,
+        avatar_url: user.user_metadata?.avatar_url
+      })
+      .select()
+      .single()
+    profile = newProfile
   }
 
-  const mockQuestions = [
-    {
-      id: '1',
-      subject_id: subjectId,
-      question_text: 'What is 2 + 2?',
-      question_type: 'multiple_choice',
-      options: ['3', '4', '5', '6'],
-      correct_answer: '4',
-      explanation: '2 + 2 = 4 (basic addition)',
-      difficulty_level: 1,
-      topic: 'Algebra',
-      curriculum_reference: 'MATH-ALG-001',
-      created_at: new Date().toISOString()
-    },
-    {
-      id: '2',
-      subject_id: subjectId,
-      question_text: 'What is 3 × 5?',
-      question_type: 'multiple_choice',
-      options: ['12', '15', '18', '20'],
-      correct_answer: '15',
-      explanation: '3 × 5 = 15 (basic multiplication)',
-      difficulty_level: 1,
-      topic: 'Number',
-      curriculum_reference: 'MATH-NUM-001',
-      created_at: new Date().toISOString()
-    }
-  ]
+  // Get questions for this subject
+  const { data: questions } = await supabase
+    .from('questions')
+    .select('*')
+    .eq('subject_id', subjectId)
+    .order('difficulty_level', { ascending: true })
+
+  if (!questions || questions.length === 0) {
+    redirect('/')
+  }
+
+  // Get user progress for this subject
+  const { data: userProgress } = await supabase
+    .from('user_progress')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('subject_id', subjectId)
+    .maybeSingle()
 
   return (
     <QuizInterface 
       user={user}
-      profile={mockProfile}
-      subject={mockSubject}
-      questions={mockQuestions}
-      userProgress={null}
+      profile={profile}
+      subject={subject}
+      questions={questions}
+      userProgress={userProgress}
     />
   )
 }

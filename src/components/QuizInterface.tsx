@@ -72,17 +72,89 @@ export default function QuizInterface({
     setSessionXP(sessionXP + xpEarned)
     
     try {
-      // Temporarily disable database operations for debugging
-      console.log('Quiz answer submitted (mock mode):', {
-        questionId: currentQuestion.id,
-        userAnswer: selectedAnswer,
-        correct,
-        xpEarned,
-        timeInSeconds
-      })
-      
-      // In a real app, this would update the database
-      // For now, just log the attempt
+      // Record quiz attempt
+      const { error: attemptError } = await supabase
+        .from('quiz_attempts')
+        .insert({
+          user_id: user.id,
+          subject_id: subject.id,
+          question_id: currentQuestion.id,
+          user_answer: selectedAnswer,
+          correct_answer: currentQuestion.correct_answer,
+          is_correct: correct,
+          time_taken_seconds: timeInSeconds,
+          xp_earned: xpEarned
+        })
+
+      if (attemptError) {
+        console.error('Error recording quiz attempt:', attemptError)
+      }
+
+      // Update or create user progress
+      const { data: currentProgress, error: progressError } = await supabase
+        .from('user_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('subject_id', subject.id)
+        .maybeSingle()
+
+      if (progressError) {
+        console.error('Error fetching progress:', progressError)
+      } else {
+        const newQuestionsAnswered = (currentProgress?.total_questions_answered || 0) + 1
+        const newCorrectAnswers = (currentProgress?.correct_answers || 0) + (correct ? 1 : 0)
+        const newAccuracy = Math.round((newCorrectAnswers / newQuestionsAnswered) * 100)
+        const newXp = (currentProgress?.total_xp_earned || 0) + xpEarned
+
+        if (currentProgress) {
+          // Update existing progress
+          const { error: updateError } = await supabase
+            .from('user_progress')
+            .update({
+              total_questions_answered: newQuestionsAnswered,
+              correct_answers: newCorrectAnswers,
+              accuracy_percentage: newAccuracy,
+              total_xp_earned: newXp,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', currentProgress.id)
+
+          if (updateError) {
+            console.error('Error updating progress:', updateError)
+          }
+        } else {
+          // Create new progress record
+          const { error: insertError } = await supabase
+            .from('user_progress')
+            .insert({
+              user_id: user.id,
+              subject_id: subject.id,
+              total_questions_answered: 1,
+              correct_answers: correct ? 1 : 0,
+              accuracy_percentage: correct ? 100 : 0,
+              total_xp_earned: xpEarned
+            })
+
+          if (insertError) {
+            console.error('Error creating progress:', insertError)
+          }
+        }
+      }
+
+      // Update user profile XP
+      if (profile) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            xp: (profile.xp || 0) + xpEarned,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id)
+
+        if (profileError) {
+          console.error('Error updating profile XP:', profileError)
+        }
+      }
         
     } catch (error) {
       console.error('Error submitting answer:', error)
