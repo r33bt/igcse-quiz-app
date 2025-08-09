@@ -69,7 +69,7 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
             Welcome back, {profile?.full_name || user.email?.split('@')[0] || 'Student'}!
           </h2>
-          <p className="text-gray-600 mb-4">Ready to boost your IGCSE knowledge?</p>
+          <p className="text-gray-600 mb-4">Ready to boost your IGCSE knowledge today?</p>
           
           {/* Quick Start Guide */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
