@@ -14,7 +14,7 @@ export default async function Home() {
   // Temporarily use minimal data to debug the issue
   const mockProfile = {
     id: user.id,
-    email: user.email,
+    email: user.email || null,
     full_name: user.user_metadata?.full_name || null,
     avatar_url: user.user_metadata?.avatar_url || null,
     xp: 0,
