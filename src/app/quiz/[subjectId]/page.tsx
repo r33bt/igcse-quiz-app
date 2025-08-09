@@ -40,7 +40,7 @@ export default async function QuizPage({ params }: QuizPageProps) {
     .select('*')
     .eq('user_id', user.id)
     .eq('subject_id', subjectId)
-    .single()
+    .maybeSingle()
 
   // Get questions for this subject (we'll implement adaptive selection later)
   const { data: questions } = await supabase

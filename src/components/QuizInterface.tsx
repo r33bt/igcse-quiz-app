@@ -94,17 +94,17 @@ export default function QuizInterface({
       }
 
       // Update or create user progress - fix counting bug by using database increment
-      const { data: currentProgress } = await supabase
+      const { data: currentProgress, error: progressError } = await supabase
         .from('user_progress')
         .select('*')
         .eq('user_id', user.id)
         .eq('subject_id', subject.id)
-        .single()
+        .maybeSingle() // Use maybeSingle() instead of single() to avoid error when no record exists
 
       let totalAnswered: number
       let correctAnswers: number
 
-      if (currentProgress) {
+      if (currentProgress && !progressError) {
         // Increment existing progress
         totalAnswered = currentProgress.total_questions_answered + 1
         correctAnswers = currentProgress.correct_answers + (correct ? 1 : 0)
