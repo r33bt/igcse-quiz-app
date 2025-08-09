@@ -18,6 +18,10 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
   const router = useRouter()
   const supabase = createClient()
 
+  // Ensure arrays are never null/undefined
+  const safeSubjects = subjects || []
+  const safeUserProgress = userProgress || []
+
   const handleSignOut = async () => {
     setLoading(true)
     await supabase.auth.signOut()
@@ -102,7 +106,7 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Questions</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {userProgress.reduce((acc, progress) => acc + progress.total_questions_answered, 0)}
+                  {safeUserProgress.reduce((acc, progress) => acc + progress.total_questions_answered, 0)}
                 </p>
               </div>
             </div>
@@ -116,9 +120,9 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Overall Accuracy</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {userProgress.length > 0 
+                  {safeUserProgress.length > 0 
                     ? Math.round(
-                        userProgress.reduce((acc, progress) => acc + progress.accuracy_percentage, 0) / userProgress.length
+                        safeUserProgress.reduce((acc, progress) => acc + progress.accuracy_percentage, 0) / safeUserProgress.length
                       )
                     : 0
                   }%
@@ -144,8 +148,8 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
         <div className="mb-8">
           <h3 className="text-2xl font-bold text-gray-900 mb-6">Choose a Subject</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {subjects.map((subject) => {
-              const progress = userProgress.find(p => p.subject_id === subject.id)
+            {safeSubjects.map((subject) => {
+              const progress = safeUserProgress.find(p => p.subject_id === subject.id)
               return (
                 <div
                   key={subject.id}
@@ -208,11 +212,11 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
         </div>
 
         {/* Recent Activity */}
-        {userProgress.length > 0 && (
+        {safeUserProgress.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Your Progress</h3>
             <div className="space-y-4">
-              {userProgress.slice(0, 3).map((progress) => (
+              {safeUserProgress.slice(0, 3).map((progress) => (
                 <div key={progress.id} className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div 
