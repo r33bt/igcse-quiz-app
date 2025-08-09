@@ -72,64 +72,17 @@ export default function QuizInterface({
     setSessionXP(sessionXP + xpEarned)
     
     try {
-      // Record the quiz attempt
-      await supabase.from('quiz_attempts').insert([
-        {
-          user_id: user.id,
-          question_id: currentQuestion.id,
-          user_answer: selectedAnswer,
-          is_correct: correct,
-          time_taken: timeInSeconds,
-          xp_earned: xpEarned,
-          difficulty_at_time: currentQuestion.difficulty_level
-        }
-      ])
-
-      // Update user XP
-      if (profile) {
-        await supabase
-          .from('profiles')
-          .update({ xp: (profile.xp || 0) + xpEarned })
-          .eq('id', user.id)
-      }
-
-      // Update or create user progress - fix counting bug by using database increment
-      const { data: currentProgress, error: progressError } = await supabase
-        .from('user_progress')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('subject_id', subject.id)
-        .maybeSingle() // Use maybeSingle() instead of single() to avoid error when no record exists
-
-      let totalAnswered: number
-      let correctAnswers: number
-
-      if (currentProgress && !progressError) {
-        // Increment existing progress
-        totalAnswered = currentProgress.total_questions_answered + 1
-        correctAnswers = currentProgress.correct_answers + (correct ? 1 : 0)
-      } else {
-        // Create new progress record
-        totalAnswered = 1
-        correctAnswers = correct ? 1 : 0
-      }
-
-      const newAccuracy = (correctAnswers / totalAnswered) * 100
-
-      await supabase
-        .from('user_progress')
-        .upsert([
-          {
-            user_id: user.id,
-            subject_id: subject.id,
-            total_questions_answered: totalAnswered,
-            correct_answers: correctAnswers,
-            accuracy_percentage: newAccuracy,
-            average_time_per_question: timeInSeconds, // simplified for now
-            current_difficulty_level: currentQuestion.difficulty_level,
-            last_practiced: new Date().toISOString()
-          }
-        ])
+      // Temporarily disable database operations for debugging
+      console.log('Quiz answer submitted (mock mode):', {
+        questionId: currentQuestion.id,
+        userAnswer: selectedAnswer,
+        correct,
+        xpEarned,
+        timeInSeconds
+      })
+      
+      // In a real app, this would update the database
+      // For now, just log the attempt
         
     } catch (error) {
       console.error('Error submitting answer:', error)
