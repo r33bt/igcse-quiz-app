@@ -216,17 +216,19 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
           <div className="bg-white rounded-xl shadow-sm border p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Your Progress</h3>
             <div className="space-y-4">
-              {safeUserProgress.slice(0, 3).map((progress) => (
+              {safeUserProgress.slice(0, 3).map((progress) => {
+                const subject = safeSubjects.find(s => s.id === progress.subject_id)
+                return (
                 <div key={progress.id} className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div 
                       className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mr-3"
-                      style={{ backgroundColor: progress.subjects?.color || '#3B82F6' }}
+                      style={{ backgroundColor: subject?.color || '#3B82F6' }}
                     >
-                      {progress.subjects?.name.charAt(0)}
+                      {subject?.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{progress.subjects?.name}</p>
+                      <p className="font-medium text-gray-900">{subject?.name}</p>
                       <p className="text-sm text-gray-600">
                         {progress.total_questions_answered} questions • {progress.accuracy_percentage.toFixed(1)}% accuracy
                       </p>
@@ -239,7 +241,8 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
                     Continue →
                   </button>
                 </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}

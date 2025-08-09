@@ -42,13 +42,10 @@ export default async function Home() {
     .select('*')
     .order('name')
 
-  // Get user progress
+  // Get user progress (simplified to avoid potential join issues)
   const { data: userProgress } = await supabase
     .from('user_progress')
-    .select(`
-      *,
-      subjects (*)
-    `)
+    .select('*')
     .eq('user_id', user.id)
 
   return (
