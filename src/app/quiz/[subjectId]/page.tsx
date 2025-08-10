@@ -68,7 +68,7 @@ export default async function QuizPage({ params }: QuizPageProps) {
       try {
         parsedOptions = JSON.parse(q.options)
       } catch (parseError) {
-        console.error(`Failed to parse options for question ${q.id}:`, parseError.message)
+        console.error(`Failed to parse options for question ${q.id}:`, parseError instanceof Error ? parseError.message : String(parseError))
         parsedOptions = []
       }
     }
