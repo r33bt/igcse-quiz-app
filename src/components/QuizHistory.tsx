@@ -276,7 +276,9 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
           <div className="divide-y divide-gray-200">
             {filteredSessions.map((session) => {
               const isExpanded = expandedSessions.has(session.id)
-              const timeTaken = session.session_duration ? Math.round(session.session_duration / 60) : null
+              const timeTaken = session.completed_at && session.started_at 
+                ? Math.round((new Date(session.completed_at).getTime() - new Date(session.started_at).getTime()) / (1000 * 60))
+                : null
               
               return (
                 <div key={session.id} className="bg-white">

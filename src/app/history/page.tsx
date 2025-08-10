@@ -44,7 +44,7 @@ export default async function HistoryPage() {
           showBackButton={true}
           backUrl="/"
         />
-        <SimpleQuizHistory user={user} profile={profile} />
+        <SimpleQuizHistory user={user} />
       </div>
     </ErrorBoundary>
   )

@@ -56,7 +56,7 @@ export default async function ReviewPage() {
             </p>
           </div>
 
-          <SimpleAnswerReview user={user} profile={profile} />
+          <SimpleAnswerReview user={user} />
         </main>
       </div>
     </ErrorBoundary>

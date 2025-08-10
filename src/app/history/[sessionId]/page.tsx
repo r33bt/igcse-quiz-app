@@ -42,7 +42,6 @@ export default async function SessionReviewPage({ params }: SessionReviewPagePro
     <ErrorBoundary>
       <SessionReview 
         user={user} 
-        profile={profile} 
         sessionId={sessionId}
       />
     </ErrorBoundary>
