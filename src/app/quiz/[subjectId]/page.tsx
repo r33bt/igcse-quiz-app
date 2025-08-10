@@ -101,6 +101,22 @@ export default async function QuizPage({ params }: QuizPageProps) {
     redirect('/')
   }
 
+  // Randomize and limit questions for better user experience
+  const shuffleArray = (array: any[]) => {
+    const shuffled = [...array]
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
+    return shuffled
+  }
+
+  // Limit quiz to 8 questions, randomized for variety
+  const QUESTIONS_PER_QUIZ = 8
+  const randomizedQuestions = shuffleArray(validatedQuestions).slice(0, QUESTIONS_PER_QUIZ)
+  
+  console.log(`Quiz will show ${randomizedQuestions.length} randomized questions out of ${validatedQuestions.length} available`)
+
   // Get user progress for this subject
   const { data: userProgress } = await supabase
     .from('user_progress')
@@ -115,7 +131,7 @@ export default async function QuizPage({ params }: QuizPageProps) {
         user={user}
         profile={profile}
         subject={subject}
-        questions={validatedQuestions}
+        questions={randomizedQuestions}
         userProgress={userProgress}
       />
     </ErrorBoundary>
