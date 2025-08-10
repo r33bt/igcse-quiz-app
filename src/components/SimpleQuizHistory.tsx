@@ -6,24 +6,25 @@ import { Profile } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
+interface QuizSubject {
+  name?: string
+  color?: string
+}
+
+interface QuizAttemptData {
+  id: string
+  is_correct: boolean
+  xp_earned: number
+  created_at: string
+  questions?: {
+    subjects?: QuizSubject
+  }
+}
+
 interface QuizGroupData {
   date: string
-  subject: {
-    name?: string
-    color?: string
-  }
-  attempts: {
-    id: string
-    is_correct: boolean
-    xp_earned: number
-    created_at: string
-    questions?: {
-      subjects?: {
-        name?: string
-        color?: string
-      }
-    }
-  }[]
+  subject: QuizSubject
+  attempts: QuizAttemptData[]
   totalQuestions: number
   correctAnswers: number
   totalXP: number
@@ -98,7 +99,7 @@ export default function SimpleQuizHistory({ user, profile: _profile }: SimpleQui
       })
 
       // Convert to array and sort by date
-      const sortedGroups = Object.values(dateGroups).sort((a: any, b: any) => 
+      const sortedGroups = Object.values(dateGroups).sort((a, b) => 
         new Date(b.date).getTime() - new Date(a.date).getTime()
       )
 
@@ -279,7 +280,7 @@ export default function SimpleQuizHistory({ user, profile: _profile }: SimpleQui
                   
                   {/* Show question details on expand */}
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                    {group.attempts.slice(0, 6).map((attempt: any, i: number) => (
+                    {group.attempts.slice(0, 6).map((attempt, i: number) => (
                       <div 
                         key={i} 
                         className={`text-xs px-2 py-1 rounded ${

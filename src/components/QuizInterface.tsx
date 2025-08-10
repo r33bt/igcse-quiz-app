@@ -83,7 +83,7 @@ export default function QuizInterface({
     }
     
     initializeQuiz()
-  }, [questions]) // Run when questions are available
+  }, [questions, user.id, subject.id, quizStarted]) // Run when questions are available
 
   useEffect(() => {
     setStartTime(new Date())
@@ -282,7 +282,7 @@ export default function QuizInterface({
           } else {
             console.log('✅ Profile XP updated successfully')
           }
-        } catch (profileUpdateError) {
+        } catch {
           console.warn('⚠️ Profile update skipped due to database constraints')
         }
       }

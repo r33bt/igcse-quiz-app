@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
 import { Profile, QuizSession, QuizAttempt, Question } from '@/lib/types'
 import { QuizSessionManager } from '@/lib/quiz-sessions'
@@ -12,7 +12,7 @@ interface SessionReviewProps {
   sessionId: string
 }
 
-export default function SessionReview({ user, profile, sessionId }: SessionReviewProps) {
+export default function SessionReview({ user, profile: _profile, sessionId }: SessionReviewProps) {
   const [session, setSession] = useState<QuizSession | null>(null)
   const [attempts, setAttempts] = useState<(QuizAttempt & { questions: Question })[]>([])
   const [loading, setLoading] = useState(true)
@@ -21,38 +21,32 @@ export default function SessionReview({ user, profile, sessionId }: SessionRevie
   const router = useRouter()
   const sessionManager = new QuizSessionManager()
 
-  useEffect(() => {
-    loadSessionReview()
-  }, [sessionId])
-
-  const loadSessionReview = async () => {
+  const loadSessionReview = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
 
-      const reviewData = await sessionManager.getSessionReview(sessionId)
-      
-      if (!reviewData.session) {
-        setError('Quiz session not found')
-        return
+      // Get session details
+      const sessionDetails = await sessionManager.getQuizSessionDetails(sessionId)
+      if (!sessionDetails) {
+        throw new Error('Quiz session not found')
       }
 
-      // Check if this session belongs to the current user
-      if (reviewData.session.user_id !== user.id) {
-        setError('Access denied - this quiz session does not belong to you')
-        return
-      }
-
-      setSession(reviewData.session)
-      setAttempts(reviewData.attempts)
+      setSession(sessionDetails.session)
+      setAttempts(sessionDetails.attempts)
 
     } catch (err) {
       console.error('Error loading session review:', err)
-      setError('Failed to load quiz review. Please try again.')
+      setError('Failed to load quiz session. Please try again.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [sessionId, sessionManager])
+
+  useEffect(() => {
+    loadSessionReview()
+  }, [loadSessionReview])
+
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)

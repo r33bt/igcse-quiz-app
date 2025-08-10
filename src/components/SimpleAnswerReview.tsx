@@ -182,7 +182,7 @@ export default function SimpleAnswerReview({
               options = typeof question.options === 'string' 
                 ? JSON.parse(question.options) 
                 : question.options
-            } catch (e) {
+            } catch {
               options = []
             }
           }
@@ -340,7 +340,7 @@ export default function SimpleAnswerReview({
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                         <p className="text-sm text-yellow-700">
                           💡 <strong>Learning Tip:</strong> Review the correct answer and explanation above. 
-                          Consider practicing more questions on the topic "{question?.topic || 'this subject'}" 
+                          Consider practicing more questions on the topic &quot;{question?.topic || 'this subject'}&quot; 
                           to strengthen your understanding.
                         </p>
                       </div>

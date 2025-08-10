@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
 import { Profile, QuizSession } from '@/lib/types'
 import { QuizSessionManager } from '@/lib/quiz-sessions'
@@ -11,7 +11,7 @@ interface QuizHistoryProps {
   profile: Profile | null
 }
 
-export default function QuizHistory({ user, profile }: QuizHistoryProps) {
+export default function QuizHistory({ user, profile: _profile }: QuizHistoryProps) {
   const [quizSessions, setQuizSessions] = useState<QuizSession[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -27,11 +27,7 @@ export default function QuizHistory({ user, profile }: QuizHistoryProps) {
   const router = useRouter()
   const sessionManager = new QuizSessionManager()
 
-  useEffect(() => {
-    loadQuizHistory()
-  }, [user.id])
-
-  const loadQuizHistory = async () => {
+  const loadQuizHistory = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -50,7 +46,12 @@ export default function QuizHistory({ user, profile }: QuizHistoryProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user.id, sessionManager])
+
+  useEffect(() => {
+    loadQuizHistory()
+  }, [loadQuizHistory])
+
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
