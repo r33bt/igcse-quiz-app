@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { User } from '@supabase/supabase-js'
-import { Profile, Subject, Question, UserProgress } from '@/lib/types'
+import { Profile, Subject, Question, UserProgress, QuizSession } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
+import { QuizSessionManager } from '@/lib/quiz-sessions'
 import { useRouter } from 'next/navigation'
 
 interface QuizInterfaceProps {
@@ -29,12 +30,34 @@ export default function QuizInterface({
   const [startTime, setStartTime] = useState<Date | null>(null)
   const [answeredQuestions, setAnsweredQuestions] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
+  const [quizSession, setQuizSession] = useState<QuizSession | null>(null)
+  const [quizStarted, setQuizStarted] = useState(false)
   
   const router = useRouter()
   const supabase = createClient()
+  const sessionManager = new QuizSessionManager()
   
   const currentQuestion = questions[currentQuestionIndex]
   const totalQuestions = questions.length
+
+  // Initialize quiz session when component mounts
+  useEffect(() => {
+    const initializeQuizSession = async () => {
+      if (!quizStarted) {
+        console.log('🎯 Creating new quiz session...')
+        const session = await sessionManager.createSession(user.id, subject.id, 'practice')
+        if (session) {
+          setQuizSession(session)
+          setQuizStarted(true)
+          console.log('✅ Quiz session created:', session.id)
+        } else {
+          console.error('❌ Failed to create quiz session')
+        }
+      }
+    }
+    
+    initializeQuizSession()
+  }, []) // Only run once when component mounts
 
   useEffect(() => {
     setStartTime(new Date())
@@ -53,7 +76,7 @@ export default function QuizInterface({
   }
 
   const submitAnswer = async () => {
-    if (!selectedAnswer || !currentQuestion || !startTime) return
+    if (!selectedAnswer || !currentQuestion || !startTime || !quizSession) return
     
     setLoading(true)
     
@@ -71,21 +94,23 @@ export default function QuizInterface({
     setSessionXP(sessionXP + xpEarned)
     
     try {
-      // Record quiz attempt (fixed column names to match database schema)
-      const { error: attemptError } = await supabase
-        .from('quiz_attempts')
-        .insert({
-          user_id: user.id,
-          question_id: currentQuestion.id,
-          user_answer: selectedAnswer,
-          is_correct: correct,
-          time_taken: timeInSeconds, // Changed from time_taken_seconds
-          xp_earned: xpEarned,
-          difficulty_at_time: currentQuestion.difficulty_level
-        })
+      // Record quiz attempt with session tracking
+      const attemptRecorded = await sessionManager.recordAttempt(
+        user.id,
+        quizSession.id,
+        currentQuestion.id,
+        selectedAnswer,
+        correct,
+        timeInSeconds,
+        xpEarned,
+        currentQuestion.difficulty_level,
+        currentQuestionIndex + 1 // question order (1-based)
+      )
 
-      if (attemptError) {
-        console.error('Error recording quiz attempt:', attemptError)
+      if (!attemptRecorded) {
+        console.error('Failed to record quiz attempt')
+      } else {
+        console.log('✅ Quiz attempt recorded for session:', quizSession.id)
       }
 
       // Update or create user progress
@@ -174,10 +199,46 @@ export default function QuizInterface({
     }
   }
 
-  const showFinalResults = () => {
+  const showFinalResults = async () => {
+    if (!quizSession) {
+      router.push('/')
+      return
+    }
+
     const accuracy = Math.round((sessionScore / totalQuestions) * 100)
-    alert(`Quiz completed!\n\nScore: ${sessionScore}/${totalQuestions} (${accuracy}%)\nXP Earned: ${sessionXP}\n\nGreat job!`)
-    router.push('/')
+    
+    try {
+      // Complete the quiz session
+      const completed = await sessionManager.completeSession(
+        quizSession.id,
+        totalQuestions,
+        sessionScore,
+        sessionXP
+      )
+
+      if (completed) {
+        console.log('✅ Quiz session completed successfully')
+        
+        // Show completion dialog with option to review
+        const reviewQuiz = confirm(
+          `Quiz completed!\n\nScore: ${sessionScore}/${totalQuestions} (${accuracy}%)\nXP Earned: ${sessionXP}\n\nGreat job!\n\nWould you like to review your answers?`
+        )
+        
+        if (reviewQuiz) {
+          router.push(`/history/${quizSession.id}`)
+        } else {
+          router.push('/')
+        }
+      } else {
+        console.error('Failed to complete quiz session')
+        alert(`Quiz completed!\n\nScore: ${sessionScore}/${totalQuestions} (${accuracy}%)\nXP Earned: ${sessionXP}\n\nGreat job!`)
+        router.push('/')
+      }
+    } catch (error) {
+      console.error('Error completing quiz session:', error)
+      alert(`Quiz completed!\n\nScore: ${sessionScore}/${totalQuestions} (${accuracy}%)\nXP Earned: ${sessionXP}\n\nGreat job!`)
+      router.push('/')
+    }
   }
 
   const goHome = () => {

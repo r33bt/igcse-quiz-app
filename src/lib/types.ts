@@ -36,10 +36,27 @@ export interface Question {
   subjects?: Subject
 }
 
+export interface QuizSession {
+  id: string
+  user_id: string
+  subject_id: string
+  started_at: string
+  completed_at: string | null
+  total_questions: number
+  correct_answers: number
+  total_xp_earned: number
+  accuracy_percentage: number
+  session_type: 'practice' | 'timed' | 'review'
+  created_at: string
+  subjects?: Subject
+}
+
 export interface QuizAttempt {
   id: string
   user_id: string
   question_id: string
+  quiz_session_id: string | null
+  question_order: number | null
   user_answer: string
   is_correct: boolean
   time_taken: number | null
@@ -47,6 +64,7 @@ export interface QuizAttempt {
   difficulty_at_time: number | null
   created_at: string
   questions?: Question
+  quiz_sessions?: QuizSession
 }
 
 export interface UserProgress {

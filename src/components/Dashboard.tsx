@@ -43,18 +43,26 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
               <h1 className="text-2xl font-bold text-gray-900">IGCSE Quiz App</h1>
             </div>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={() => router.push('/history')}
+                className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors"
+              >
+                <span>📊</span>
+                <span className="font-medium">History</span>
+              </button>
+              <a
+                href="/guide"
+                className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors"
+              >
+                <span>📖</span>
+                <span className="font-medium">Guide</span>
+              </a>
               <div className="flex items-center space-x-2">
                 <div className="text-yellow-500">⚡</div>
                 <span className="font-semibold">{profile?.xp || 0} XP</span>
                 <div className="text-purple-500">🏆</div>
                 <span className="font-semibold">Level {profile?.level || 1}</span>
               </div>
-              <button
-                onClick={() => router.push('/guide')}
-                className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg font-medium transition-colors"
-              >
-                📖 Guide
-              </button>
               <button
                 onClick={handleSignOut}
                 disabled={loading}
