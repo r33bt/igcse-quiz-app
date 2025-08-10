@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import SimpleQuizHistory from '@/components/SimpleQuizHistory'
+import QuizHistory from '@/components/QuizHistory'
 import AppNavigation from '@/components/AppNavigation'
 import ErrorBoundary from '@/components/ErrorBoundary'
 
@@ -44,7 +44,7 @@ export default async function HistoryPage() {
           showBackButton={true}
           backUrl="/"
         />
-        <SimpleQuizHistory user={user} />
+        <QuizHistory user={user} />
       </div>
     </ErrorBoundary>
   )
