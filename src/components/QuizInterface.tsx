@@ -32,19 +32,40 @@ export default function QuizInterface({
   const [loading, setLoading] = useState(false)
   const [quizSession, setQuizSession] = useState<QuizSession | null>(null)
   const [quizStarted, setQuizStarted] = useState(false)
+  const [quizQuestions, setQuizQuestions] = useState<Question[]>([])
   
   const router = useRouter()
   const supabase = createClient()
   const sessionManager = new QuizSessionManager()
   
-  const currentQuestion = questions[currentQuestionIndex]
-  const totalQuestions = questions.length
+  // Client-side randomization and limiting
+  const shuffleArray = (array: Question[]): Question[] => {
+    const shuffled = [...array]
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
+    return shuffled
+  }
+  
+  const currentQuestion = quizQuestions[currentQuestionIndex]
+  const totalQuestions = quizQuestions.length
 
-  // Initialize quiz session when component mounts
+  // Initialize quiz session and randomize questions when component mounts
   useEffect(() => {
-    const initializeQuizSession = async () => {
-      if (!quizStarted) {
-        console.log('🎯 Creating new quiz session...')
+    const initializeQuiz = async () => {
+      if (!quizStarted && questions.length > 0) {
+        console.log('🎯 Initializing quiz with randomized questions...')
+        
+        // Randomize and limit questions (8 questions max)
+        const QUESTIONS_PER_QUIZ = Math.min(8, questions.length)
+        const randomizedQuestions = shuffleArray(questions).slice(0, QUESTIONS_PER_QUIZ)
+        setQuizQuestions(randomizedQuestions)
+        
+        console.log(`Selected ${randomizedQuestions.length} random questions from ${questions.length} available`)
+        console.log('Questions:', randomizedQuestions.map(q => q.question_text.substring(0, 30) + '...'))
+        
+        // Create quiz session
         const session = await sessionManager.createSession(user.id, subject.id, 'practice')
         if (session) {
           setQuizSession(session)
@@ -56,8 +77,8 @@ export default function QuizInterface({
       }
     }
     
-    initializeQuizSession()
-  }, []) // Only run once when component mounts
+    initializeQuiz()
+  }, [questions]) // Run when questions are available
 
   useEffect(() => {
     setStartTime(new Date())
@@ -245,17 +266,28 @@ export default function QuizInterface({
     router.push('/')
   }
 
-  if (!currentQuestion) {
+  // Show loading while questions are being randomized
+  if (!currentQuestion || quizQuestions.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">No questions available</h2>
-          <button
-            onClick={goHome}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium"
-          >
-            Go Back
-          </button>
+          {questions.length > 0 ? (
+            <>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Preparing your quiz...</h2>
+              <p className="text-gray-600">Selecting {Math.min(8, questions.length)} random questions</p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">No questions available</h2>
+              <button
+                onClick={goHome}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium"
+              >
+                Go Back
+              </button>
+            </>
+          )}
         </div>
       </div>
     )
