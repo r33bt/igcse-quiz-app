@@ -1,7 +1,15 @@
-import { type NextRequest } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
+  // Temporarily bypass middleware for debugging deployment issues
+  const isDebugRoute = request.nextUrl.pathname.startsWith('/debug') || 
+                       request.nextUrl.pathname.startsWith('/guide')
+  
+  if (isDebugRoute) {
+    return NextResponse.next()
+  }
+  
   return await updateSession(request)
 }
 
