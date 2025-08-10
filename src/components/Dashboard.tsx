@@ -16,12 +16,23 @@ interface DashboardProps {
 
 interface ActivityGroup {
   date: string
-  attempts: any[]
+  attempts: {
+    id: string
+    is_correct: boolean
+    xp_earned: number
+    created_at: string
+    questions?: {
+      question_text: string
+      subjects?: {
+        name: string
+        color: string
+      }
+    }
+  }[]
 }
 
 export default function Dashboard({ user, profile, subjects, userProgress }: DashboardProps) {
   const [recentActivity, setRecentActivity] = useState<ActivityGroup[]>([])
-  const [loadingActivity, setLoadingActivity] = useState(true)
   const router = useRouter()
   const supabase = createClient()
 
@@ -32,7 +43,6 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
   // Load recent quiz activity
   const loadRecentActivity = useCallback(async () => {
       try {
-        setLoadingActivity(true)
         
         // Get recent quiz attempts with question and subject info
         const { data: attempts, error } = await supabase
@@ -73,8 +83,6 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
 
       } catch (error) {
         console.error('Failed to load recent activity:', error)
-      } finally {
-        setLoadingActivity(false)
       }
     }, [user.id, supabase])
 

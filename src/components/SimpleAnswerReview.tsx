@@ -6,6 +6,28 @@ import { Profile } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
+interface QuizAttempt {
+  id: string
+  is_correct: boolean
+  xp_earned: number
+  time_taken: number
+  user_answer: string
+  created_at: string
+  questions?: {
+    id: string
+    question_text: string
+    correct_answer: string
+    options: string | string[]
+    explanation?: string
+    topic?: string
+    difficulty_level: number
+    subjects?: {
+      name: string
+      color: string
+    }
+  }
+}
+
 interface SimpleAnswerReviewProps {
   user: User
   profile: Profile | null
@@ -15,11 +37,11 @@ interface SimpleAnswerReviewProps {
 
 export default function SimpleAnswerReview({ 
   user, 
-  profile, 
+  profile: _profile, 
   subjectId, 
   limit = 20 
 }: SimpleAnswerReviewProps) {
-  const [attempts, setAttempts] = useState<any[]>([])
+  const [attempts, setAttempts] = useState<QuizAttempt[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandedAttempt, setExpandedAttempt] = useState<string | null>(null)
