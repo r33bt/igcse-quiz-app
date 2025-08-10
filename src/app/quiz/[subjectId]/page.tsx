@@ -60,13 +60,29 @@ export default async function QuizPage({ params }: QuizPageProps) {
     redirect('/')
   }
 
-  // Validate question structure to prevent runtime errors
-  const validatedQuestions = questions.filter(q => {
+  // Parse options and validate question structure to prevent runtime errors
+  const validatedQuestions = questions.map(q => {
+    // Handle options: parse JSON strings to arrays if needed
+    let parsedOptions = q.options
+    if (typeof q.options === 'string') {
+      try {
+        parsedOptions = JSON.parse(q.options)
+      } catch (parseError) {
+        console.error(`Failed to parse options for question ${q.id}:`, parseError.message)
+        parsedOptions = []
+      }
+    }
+    
+    return {
+      ...q,
+      options: parsedOptions
+    }
+  }).filter(q => {
     const hasRequiredFields = q.id && q.question_text && q.correct_answer
     const hasValidOptions = Array.isArray(q.options) && q.options.length > 0
     
     if (!hasRequiredFields || !hasValidOptions) {
-      console.error('Invalid question structure:', q.id, {
+      console.error('Invalid question structure after parsing:', q.id, {
         hasId: !!q.id,
         hasQuestionText: !!q.question_text,
         hasCorrectAnswer: !!q.correct_answer,
