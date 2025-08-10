@@ -31,8 +31,8 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
     })
     
     // TODO: Send to error monitoring service like Sentry
-    if (typeof window !== 'undefined' && window.gtag) {
-      window.gtag('event', 'exception', {
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', 'exception', {
         description: error.toString(),
         fatal: false
       })

@@ -11,15 +11,14 @@ interface QuizInterfaceProps {
   profile: Profile | null
   subject: Subject
   questions: Question[]
-  userProgress: UserProgress | null
+  userProgress?: UserProgress | null // Made optional since it's not used
 }
 
 export default function QuizInterface({ 
   user, 
   profile, 
   subject, 
-  questions, 
-  userProgress 
+  questions
 }: QuizInterfaceProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null)
