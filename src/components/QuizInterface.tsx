@@ -72,18 +72,17 @@ export default function QuizInterface({
     setSessionXP(sessionXP + xpEarned)
     
     try {
-      // Record quiz attempt
+      // Record quiz attempt (fixed column names to match database schema)
       const { error: attemptError } = await supabase
         .from('quiz_attempts')
         .insert({
           user_id: user.id,
-          subject_id: subject.id,
           question_id: currentQuestion.id,
           user_answer: selectedAnswer,
-          correct_answer: currentQuestion.correct_answer,
           is_correct: correct,
-          time_taken_seconds: timeInSeconds,
-          xp_earned: xpEarned
+          time_taken: timeInSeconds, // Changed from time_taken_seconds
+          xp_earned: xpEarned,
+          difficulty_at_time: currentQuestion.difficulty_level
         })
 
       if (attemptError) {

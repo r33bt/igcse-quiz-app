@@ -18,9 +18,9 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
   const router = useRouter()
   const supabase = createClient()
 
-  // Ensure arrays are never null/undefined
-  const safeSubjects = subjects || []
-  const safeUserProgress = userProgress || []
+  // Ensure arrays are never null/undefined with comprehensive type checking
+  const safeSubjects = Array.isArray(subjects) ? subjects : []
+  const safeUserProgress = Array.isArray(userProgress) ? userProgress : []
 
   const handleSignOut = async () => {
     setLoading(true)
