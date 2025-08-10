@@ -66,13 +66,16 @@ export default function QuizInterface({
         console.log('Questions:', randomizedQuestions.map(q => q.question_text.substring(0, 30) + '...'))
         
         // Create quiz session
+        console.log('🎯 Creating quiz session for user:', user.id, 'subject:', subject.id)
         const session = await sessionManager.createSession(user.id, subject.id, 'practice')
         if (session) {
           setQuizSession(session)
           setQuizStarted(true)
-          console.log('✅ Quiz session created:', session.id)
+          console.log('✅ Quiz session created successfully:', session.id)
+          console.log('✅ Quiz fully initialized - ready for submissions')
         } else {
-          console.error('❌ Failed to create quiz session')
+          console.error('❌ Failed to create quiz session - submissions will be blocked')
+          console.error('❌ This is likely due to RLS policy or authentication issues')
         }
       }
     }
@@ -97,7 +100,30 @@ export default function QuizInterface({
   }
 
   const submitAnswer = async () => {
-    if (!selectedAnswer || !currentQuestion || !startTime || !quizSession) return
+    console.log('🔍 Submit attempt:', {
+      selectedAnswer,
+      hasCurrentQuestion: !!currentQuestion,
+      hasStartTime: !!startTime,
+      hasQuizSession: !!quizSession,
+      quizSessionId: quizSession?.id
+    })
+    
+    if (!selectedAnswer) {
+      console.error('❌ Submit blocked: No answer selected')
+      return
+    }
+    if (!currentQuestion) {
+      console.error('❌ Submit blocked: No current question')
+      return
+    }
+    if (!startTime) {
+      console.error('❌ Submit blocked: No start time')
+      return
+    }
+    if (!quizSession) {
+      console.error('❌ Submit blocked: No quiz session - session creation may have failed')
+      return
+    }
     
     setLoading(true)
     
