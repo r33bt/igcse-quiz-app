@@ -37,10 +37,9 @@ interface SimpleAnswerReviewProps {
 
 export default function SimpleAnswerReview({ 
   user, 
-  profile: _profile, 
   subjectId, 
   limit = 20 
-}: SimpleAnswerReviewProps) {
+}: Omit<SimpleAnswerReviewProps, 'profile'>) {
   const [attempts, setAttempts] = useState<QuizAttempt[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

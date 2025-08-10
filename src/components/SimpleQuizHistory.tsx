@@ -35,7 +35,7 @@ interface SimpleQuizHistoryProps {
   profile: Profile | null
 }
 
-export default function SimpleQuizHistory({ user, profile: _profile }: SimpleQuizHistoryProps) {
+export default function SimpleQuizHistory({ user }: Omit<SimpleQuizHistoryProps, 'profile'>) {
   const [quizData, setQuizData] = useState<QuizGroupData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

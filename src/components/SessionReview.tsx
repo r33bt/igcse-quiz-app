@@ -12,7 +12,7 @@ interface SessionReviewProps {
   sessionId: string
 }
 
-export default function SessionReview({ user, profile: _profile, sessionId }: SessionReviewProps) {
+export default function SessionReview({ user, sessionId }: Omit<SessionReviewProps, 'profile'>) {
   const [session, setSession] = useState<QuizSession | null>(null)
   const [attempts, setAttempts] = useState<(QuizAttempt & { questions: Question })[]>([])
   const [loading, setLoading] = useState(true)

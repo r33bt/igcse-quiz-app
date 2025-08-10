@@ -254,7 +254,7 @@ export default function QuizHistory({ user, profile: _profile }: QuizHistoryProp
                 <option value="all">All Performance</option>
                 <option value="high">High (80%+)</option>
                 <option value="medium">Medium (60-79%)</option>
-                <option value="low">Needs Improvement (<60%)</option>
+                <option value="low">Needs Improvement (&lt;60%)</option>
               </select>
             </div>
           </div>
