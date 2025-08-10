@@ -65,31 +65,19 @@ export default function QuizInterface({
         console.log(`Selected ${randomizedQuestions.length} random questions from ${questions.length} available`)
         console.log('Questions:', randomizedQuestions.map(q => q.question_text.substring(0, 30) + '...'))
         
-        // Create quiz session
-        console.log('🎯 Creating quiz session for user:', user.id, 'subject:', subject.id)
+        // Try to create quiz session (optional - for history features)
+        console.log('🎯 Attempting to create quiz session for enhanced features...')
         const session = await sessionManager.createSession(user.id, subject.id, 'practice')
         if (session) {
           setQuizSession(session)
-          setQuizStarted(true)
-          console.log('✅ Quiz session created successfully:', session.id)
-          console.log('✅ Quiz fully initialized - ready for submissions')
+          console.log('✅ Quiz session created - history features enabled:', session.id)
         } else {
-          console.error('❌ Failed to create quiz session - submissions will be blocked')
-          console.error('❌ This is likely due to RLS policy or authentication issues')
-          
-          // Show user-friendly error message
-          setTimeout(() => {
-            const shouldRefresh = confirm(
-              '⚠️ Authentication Error\n\n' +
-              'Your session has expired. Please sign out and sign back in to continue.\n\n' +
-              'Click OK to go back to the homepage, or Cancel to try again.'
-            )
-            
-            if (shouldRefresh) {
-              router.push('/')
-            }
-          }, 2000) // Delay to allow user to see the quiz loading first
+          console.warn('⚠️ Quiz session creation failed - history features disabled, but quiz will work normally')
         }
+        
+        // Always mark as started regardless of session creation
+        setQuizStarted(true)
+        console.log('✅ Quiz fully initialized and ready for submissions')
       }
     }
     
@@ -133,9 +121,10 @@ export default function QuizInterface({
       console.error('❌ Submit blocked: No start time')
       return
     }
+    
+    // Quiz sessions are optional - quiz works without them
     if (!quizSession) {
-      console.error('❌ Submit blocked: No quiz session - session creation may have failed')
-      return
+      console.warn('⚠️ No quiz session - history features disabled, but quiz will continue')
     }
     
     setLoading(true)
@@ -154,23 +143,44 @@ export default function QuizInterface({
     setSessionXP(sessionXP + xpEarned)
     
     try {
-      // Record quiz attempt with session tracking
-      const attemptRecorded = await sessionManager.recordAttempt(
-        user.id,
-        quizSession.id,
-        currentQuestion.id,
-        selectedAnswer,
-        correct,
-        timeInSeconds,
-        xpEarned,
-        currentQuestion.difficulty_level,
-        currentQuestionIndex + 1 // question order (1-based)
-      )
+      // Try to record with session tracking first (for history feature)
+      if (quizSession) {
+        const attemptRecorded = await sessionManager.recordAttempt(
+          user.id,
+          quizSession.id,
+          currentQuestion.id,
+          selectedAnswer,
+          correct,
+          timeInSeconds,
+          xpEarned,
+          currentQuestion.difficulty_level,
+          currentQuestionIndex + 1 // question order (1-based)
+        )
 
-      if (!attemptRecorded) {
-        console.error('Failed to record quiz attempt')
+        if (attemptRecorded) {
+          console.log('✅ Quiz attempt recorded with session tracking')
+        } else {
+          console.warn('⚠️ Session tracking failed, falling back to basic recording')
+        }
+      }
+
+      // Always record basic quiz attempt (original functionality)
+      const { error: attemptError } = await supabase
+        .from('quiz_attempts')
+        .insert({
+          user_id: user.id,
+          question_id: currentQuestion.id,
+          user_answer: selectedAnswer,
+          is_correct: correct,
+          time_taken: timeInSeconds,
+          xp_earned: xpEarned,
+          difficulty_at_time: currentQuestion.difficulty_level
+        })
+
+      if (attemptError) {
+        console.error('Error recording basic quiz attempt:', attemptError)
       } else {
-        console.log('✅ Quiz attempt recorded for session:', quizSession.id)
+        console.log('✅ Basic quiz attempt recorded successfully')
       }
 
       // Update or create user progress
@@ -260,45 +270,41 @@ export default function QuizInterface({
   }
 
   const showFinalResults = async () => {
-    if (!quizSession) {
-      router.push('/')
-      return
-    }
-
     const accuracy = Math.round((sessionScore / totalQuestions) * 100)
     
-    try {
-      // Complete the quiz session
-      const completed = await sessionManager.completeSession(
-        quizSession.id,
-        totalQuestions,
-        sessionScore,
-        sessionXP
-      )
-
-      if (completed) {
-        console.log('✅ Quiz session completed successfully')
-        
-        // Show completion dialog with option to review
-        const reviewQuiz = confirm(
-          `Quiz completed!\n\nScore: ${sessionScore}/${totalQuestions} (${accuracy}%)\nXP Earned: ${sessionXP}\n\nGreat job!\n\nWould you like to review your answers?`
+    // Try to complete quiz session if one exists (for history features)
+    if (quizSession) {
+      try {
+        const completed = await sessionManager.completeSession(
+          quizSession.id,
+          totalQuestions,
+          sessionScore,
+          sessionXP
         )
-        
-        if (reviewQuiz) {
-          router.push(`/history/${quizSession.id}`)
+
+        if (completed) {
+          console.log('✅ Quiz session completed - review available in history')
+          
+          // Show completion dialog with option to review
+          const reviewQuiz = confirm(
+            `Quiz completed!\n\nScore: ${sessionScore}/${totalQuestions} (${accuracy}%)\nXP Earned: ${sessionXP}\n\nGreat job!\n\nWould you like to review your answers?`
+          )
+          
+          if (reviewQuiz) {
+            router.push(`/history/${quizSession.id}`)
+            return
+          }
         } else {
-          router.push('/')
+          console.warn('⚠️ Failed to complete quiz session - review not available')
         }
-      } else {
-        console.error('Failed to complete quiz session')
-        alert(`Quiz completed!\n\nScore: ${sessionScore}/${totalQuestions} (${accuracy}%)\nXP Earned: ${sessionXP}\n\nGreat job!`)
-        router.push('/')
+      } catch (error) {
+        console.error('Error completing quiz session:', error)
       }
-    } catch (error) {
-      console.error('Error completing quiz session:', error)
-      alert(`Quiz completed!\n\nScore: ${sessionScore}/${totalQuestions} (${accuracy}%)\nXP Earned: ${sessionXP}\n\nGreat job!`)
-      router.push('/')
     }
+
+    // Standard completion (works with or without sessions)
+    alert(`Quiz completed!\n\nScore: ${sessionScore}/${totalQuestions} (${accuracy}%)\nXP Earned: ${sessionXP}\n\nGreat job!`)
+    router.push('/')
   }
 
   const goHome = () => {
