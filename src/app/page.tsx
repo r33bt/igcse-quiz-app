@@ -18,23 +18,43 @@ export default async function Home() {
     .eq('id', user.id)
     .maybeSingle()
 
-  // Create profile if it doesn't exist
+  // Create profile if it doesn't exist (with better error handling)
   if (!profile) {
+    console.log('🔄 Creating missing profile for user:', user.id)
+    
+    // Try to create profile with fallback handling
     const { data: newProfile, error: insertError } = await supabase
       .from('profiles')
       .insert({
         id: user.id,
         email: user.email,
-        full_name: user.user_metadata?.full_name,
-        avatar_url: user.user_metadata?.avatar_url
+        full_name: user.user_metadata?.full_name || user.email?.split('@')[0],
+        avatar_url: user.user_metadata?.avatar_url,
+        xp: 0,
+        level: 1
       })
       .select()
       .single()
 
     if (insertError) {
-      console.error('Error creating profile:', insertError)
+      console.error('❌ Error creating profile:', insertError.message)
+      
+      // Create a minimal profile object for the app to work
+      profile = {
+        id: user.id,
+        email: user.email!,
+        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+        xp: 0,
+        level: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        avatar_url: null,
+        study_streak: 0
+      }
+      console.log('⚠️ Using fallback profile object')
     } else {
       profile = newProfile
+      console.log('✅ Profile created successfully')
     }
   }
 

@@ -184,69 +184,103 @@ export default function QuizInterface({
         console.log('✅ Basic quiz attempt recorded successfully')
       }
 
-      // Update or create user progress
-      const { data: currentProgress, error: progressError } = await supabase
-        .from('user_progress')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('subject_id', subject.id)
-        .maybeSingle()
+      // Update or create user progress using UPSERT
+      try {
+        const { data: upsertedProgress, error: progressError } = await supabase
+          .from('user_progress')
+          .upsert({
+            user_id: user.id,
+            subject_id: subject.id,
+            total_questions_answered: 1,
+            correct_answers: correct ? 1 : 0,
+            accuracy_percentage: correct ? 100 : 0,
+            total_xp_earned: xpEarned
+          }, {
+            onConflict: 'user_id, subject_id',
+            ignoreDuplicates: false
+          })
+          .select()
+          .single()
 
-      if (progressError) {
-        console.error('Error fetching progress:', progressError)
-      } else {
-        const newQuestionsAnswered = (currentProgress?.total_questions_answered || 0) + 1
-        const newCorrectAnswers = (currentProgress?.correct_answers || 0) + (correct ? 1 : 0)
-        const newAccuracy = Math.round((newCorrectAnswers / newQuestionsAnswered) * 100)
-        const newXp = (currentProgress?.total_xp_earned || 0) + xpEarned
-
-        if (currentProgress) {
-          // Update existing progress
-          const { error: updateError } = await supabase
+        if (progressError) {
+          console.error('❌ Error upserting progress:', progressError.message)
+          
+          // Fallback: try to get existing progress and manually update
+          const { data: existingProgress } = await supabase
             .from('user_progress')
-            .update({
-              total_questions_answered: newQuestionsAnswered,
-              correct_answers: newCorrectAnswers,
-              accuracy_percentage: newAccuracy,
-              total_xp_earned: newXp,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', currentProgress.id)
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('subject_id', subject.id)
+            .maybeSingle()
 
-          if (updateError) {
-            console.error('Error updating progress:', updateError)
+          if (existingProgress) {
+            // Update existing record
+            const newQuestionsAnswered = existingProgress.total_questions_answered + 1
+            const newCorrectAnswers = existingProgress.correct_answers + (correct ? 1 : 0)
+            const newAccuracy = Math.round((newCorrectAnswers / newQuestionsAnswered) * 100)
+            const newXp = existingProgress.total_xp_earned + xpEarned
+
+            const { error: updateError } = await supabase
+              .from('user_progress')
+              .update({
+                total_questions_answered: newQuestionsAnswered,
+                correct_answers: newCorrectAnswers,
+                accuracy_percentage: newAccuracy,
+                total_xp_earned: newXp,
+                updated_at: new Date().toISOString()
+              })
+              .eq('user_id', user.id)
+              .eq('subject_id', subject.id)
+
+            if (updateError) {
+              console.error('❌ Error updating existing progress:', updateError.message)
+            } else {
+              console.log('✅ Progress updated via fallback method')
+            }
+          } else {
+            // Create new record
+            const { error: insertError } = await supabase
+              .from('user_progress')
+              .insert({
+                user_id: user.id,
+                subject_id: subject.id,
+                total_questions_answered: 1,
+                correct_answers: correct ? 1 : 0,
+                accuracy_percentage: correct ? 100 : 0,
+                total_xp_earned: xpEarned
+              })
+
+            if (insertError) {
+              console.error('❌ Error creating new progress:', insertError.message)
+            } else {
+              console.log('✅ New progress record created')
+            }
           }
         } else {
-          // Create new progress record
-          const { error: insertError } = await supabase
-            .from('user_progress')
-            .insert({
-              user_id: user.id,
-              subject_id: subject.id,
-              total_questions_answered: 1,
-              correct_answers: correct ? 1 : 0,
-              accuracy_percentage: correct ? 100 : 0,
-              total_xp_earned: xpEarned
-            })
-
-          if (insertError) {
-            console.error('Error creating progress:', insertError)
-          }
+          console.log('✅ Progress updated successfully:', upsertedProgress)
         }
+      } catch (progressUpdateError) {
+        console.error('❌ Progress update failed completely:', progressUpdateError)
       }
 
-      // Update user profile XP
+      // Update user profile XP (optional - app works without this)
       if (profile) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            xp: (profile.xp || 0) + xpEarned,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', user.id)
+        try {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({
+              xp: (profile.xp || 0) + xpEarned,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', user.id)
 
-        if (profileError) {
-          console.error('Error updating profile XP:', profileError)
+          if (profileError) {
+            console.warn('⚠️ Profile XP update failed (app continues normally):', profileError.message)
+          } else {
+            console.log('✅ Profile XP updated successfully')
+          }
+        } catch (profileUpdateError) {
+          console.warn('⚠️ Profile update skipped due to database constraints')
         }
       }
         
