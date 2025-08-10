@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import QuizInterface from '@/components/QuizInterface'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 interface QuizPageProps {
   params: Promise<{ subjectId: string }>
@@ -59,6 +60,31 @@ export default async function QuizPage({ params }: QuizPageProps) {
     redirect('/')
   }
 
+  // Validate question structure to prevent runtime errors
+  const validatedQuestions = questions.filter(q => {
+    const hasRequiredFields = q.id && q.question_text && q.correct_answer
+    const hasValidOptions = Array.isArray(q.options) && q.options.length > 0
+    
+    if (!hasRequiredFields || !hasValidOptions) {
+      console.error('Invalid question structure:', q.id, {
+        hasId: !!q.id,
+        hasQuestionText: !!q.question_text,
+        hasCorrectAnswer: !!q.correct_answer,
+        hasValidOptions,
+        optionsType: typeof q.options,
+        optionsValue: q.options
+      })
+      return false
+    }
+    
+    return true
+  })
+
+  if (validatedQuestions.length === 0) {
+    console.error('No valid questions found after validation')
+    redirect('/')
+  }
+
   // Get user progress for this subject
   const { data: userProgress } = await supabase
     .from('user_progress')
@@ -68,12 +94,14 @@ export default async function QuizPage({ params }: QuizPageProps) {
     .maybeSingle()
 
   return (
-    <QuizInterface 
-      user={user}
-      profile={profile}
-      subject={subject}
-      questions={questions}
-      userProgress={userProgress}
-    />
+    <ErrorBoundary>
+      <QuizInterface 
+        user={user}
+        profile={profile}
+        subject={subject}
+        questions={validatedQuestions}
+        userProgress={userProgress}
+      />
+    </ErrorBoundary>
   )
 }

@@ -270,7 +270,7 @@ export default function QuizInterface({
 
           {/* Answer Options */}
           <div className="space-y-3 mb-6">
-            {currentQuestion.options?.map((option, index) => (
+            {Array.isArray(currentQuestion.options) ? currentQuestion.options.map((option, index) => (
               <button
                 key={index}
                 onClick={() => !showResult && setSelectedAnswer(option)}
@@ -294,7 +294,12 @@ export default function QuizInterface({
                   {option}
                 </div>
               </button>
-            ))}
+            )) : (
+              <div className="p-4 text-center text-red-600">
+                <p>Error loading answer options. Please refresh the page.</p>
+                <p className="text-sm text-gray-500 mt-1">Options: {JSON.stringify(currentQuestion.options)}</p>
+              </div>
+            )}
           </div>
 
           {/* Result Feedback */}
