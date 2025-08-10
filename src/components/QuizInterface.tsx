@@ -184,7 +184,7 @@ export default function QuizInterface({
         console.log('✅ Basic quiz attempt recorded successfully')
       }
 
-      // Update or create user progress using UPSERT
+      // Update or create user progress using UPSERT (without total_xp_earned - XP tracked in profiles)
       try {
         const { data: upsertedProgress, error: progressError } = await supabase
           .from('user_progress')
@@ -194,7 +194,8 @@ export default function QuizInterface({
             total_questions_answered: 1,
             correct_answers: correct ? 1 : 0,
             accuracy_percentage: correct ? 100 : 0,
-            total_xp_earned: xpEarned
+            current_difficulty_level: currentQuestion.difficulty_level,
+            last_practiced: new Date().toISOString()
           }, {
             onConflict: 'user_id, subject_id',
             ignoreDuplicates: false
@@ -218,7 +219,7 @@ export default function QuizInterface({
             const newQuestionsAnswered = existingProgress.total_questions_answered + 1
             const newCorrectAnswers = existingProgress.correct_answers + (correct ? 1 : 0)
             const newAccuracy = Math.round((newCorrectAnswers / newQuestionsAnswered) * 100)
-            const newXp = existingProgress.total_xp_earned + xpEarned
+            // XP is tracked in profiles table, not user_progress
 
             const { error: updateError } = await supabase
               .from('user_progress')
@@ -226,7 +227,8 @@ export default function QuizInterface({
                 total_questions_answered: newQuestionsAnswered,
                 correct_answers: newCorrectAnswers,
                 accuracy_percentage: newAccuracy,
-                total_xp_earned: newXp,
+                current_difficulty_level: currentQuestion.difficulty_level,
+                last_practiced: new Date().toISOString(),
                 updated_at: new Date().toISOString()
               })
               .eq('user_id', user.id)
@@ -247,7 +249,8 @@ export default function QuizInterface({
                 total_questions_answered: 1,
                 correct_answers: correct ? 1 : 0,
                 accuracy_percentage: correct ? 100 : 0,
-                total_xp_earned: xpEarned
+                current_difficulty_level: currentQuestion.difficulty_level,
+                last_practiced: new Date().toISOString()
               })
 
             if (insertError) {
