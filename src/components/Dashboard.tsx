@@ -100,6 +100,13 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
             </div>
             <div className="flex items-center space-x-4">
               <button
+                onClick={() => router.push('/review')}
+                className="flex items-center space-x-2 text-gray-600 hover:text-purple-600 transition-colors"
+              >
+                <span>🔍</span>
+                <span className="font-medium">Review</span>
+              </button>
+              <button
                 onClick={() => router.push('/history')}
                 className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors"
               >
