@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import QuizHistory from '@/components/QuizHistory'
+import SimpleQuizHistory from '@/components/SimpleQuizHistory'
 import ErrorBoundary from '@/components/ErrorBoundary'
 
 export default async function HistoryPage() {
@@ -58,7 +58,7 @@ export default async function HistoryPage() {
           </div>
         </header>
 
-        <QuizHistory user={user} profile={profile} />
+        <SimpleQuizHistory user={user} profile={profile} />
       </div>
     </ErrorBoundary>
   )
