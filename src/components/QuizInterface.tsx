@@ -76,6 +76,19 @@ export default function QuizInterface({
         } else {
           console.error('❌ Failed to create quiz session - submissions will be blocked')
           console.error('❌ This is likely due to RLS policy or authentication issues')
+          
+          // Show user-friendly error message
+          setTimeout(() => {
+            const shouldRefresh = confirm(
+              '⚠️ Authentication Error\n\n' +
+              'Your session has expired. Please sign out and sign back in to continue.\n\n' +
+              'Click OK to go back to the homepage, or Cancel to try again.'
+            )
+            
+            if (shouldRefresh) {
+              router.push('/')
+            }
+          }, 2000) // Delay to allow user to see the quiz loading first
         }
       }
     }

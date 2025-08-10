@@ -5,6 +5,45 @@ export class QuizSessionManager {
   private supabase = createClient()
 
   /**
+   * Ensure we have a valid session before making requests
+   */
+  private async ensureValidSession(): Promise<boolean> {
+    try {
+      const { data: { session }, error } = await this.supabase.auth.getSession()
+      
+      if (error) {
+        console.error('Session check failed:', error.message)
+        return false
+      }
+      
+      if (!session) {
+        console.error('No active session found')
+        return false
+      }
+      
+      // Check if token is expired or will expire soon (within 5 minutes)
+      const tokenExpiresAt = session.expires_at
+      const currentTime = Math.floor(Date.now() / 1000)
+      const timeUntilExpiry = tokenExpiresAt! - currentTime
+      
+      if (timeUntilExpiry < 300) { // Less than 5 minutes
+        console.log('Token expiring soon, refreshing...')
+        const { error: refreshError } = await this.supabase.auth.refreshSession()
+        if (refreshError) {
+          console.error('Token refresh failed:', refreshError.message)
+          return false
+        }
+        console.log('✅ Token refreshed successfully')
+      }
+      
+      return true
+    } catch (error) {
+      console.error('Session validation failed:', error)
+      return false
+    }
+  }
+
+  /**
    * Create a new quiz session
    */
   async createSession(
@@ -13,6 +52,13 @@ export class QuizSessionManager {
     sessionType: 'practice' | 'timed' | 'review' = 'practice'
   ): Promise<QuizSession | null> {
     try {
+      // Ensure we have a valid session before attempting to create quiz session
+      const hasValidSession = await this.ensureValidSession()
+      if (!hasValidSession) {
+        console.error('Cannot create quiz session: Invalid or expired authentication')
+        return null
+      }
+
       const { data, error } = await this.supabase
         .from('quiz_sessions')
         .insert({
@@ -26,6 +72,12 @@ export class QuizSessionManager {
 
       if (error) {
         console.error('Error creating quiz session:', error.message)
+        
+        // If it's an auth error, suggest re-login
+        if (error.message.includes('JWT') || error.message.includes('expired') || error.message.includes('policy')) {
+          console.error('🔑 Authentication issue detected. Please sign out and sign back in.')
+        }
+        
         return null
       }
 
@@ -86,6 +138,13 @@ export class QuizSessionManager {
     questionOrder: number
   ): Promise<boolean> {
     try {
+      // Ensure valid session before recording attempt
+      const hasValidSession = await this.ensureValidSession()
+      if (!hasValidSession) {
+        console.error('Cannot record quiz attempt: Invalid or expired authentication')
+        return false
+      }
+
       const { error } = await this.supabase
         .from('quiz_attempts')
         .insert({
@@ -102,6 +161,12 @@ export class QuizSessionManager {
 
       if (error) {
         console.error('Error recording quiz attempt:', error.message)
+        
+        // If it's an auth error, suggest re-login
+        if (error.message.includes('JWT') || error.message.includes('expired') || error.message.includes('policy')) {
+          console.error('🔑 Authentication issue detected. Please sign out and sign back in.')
+        }
+        
         return false
       }
 
