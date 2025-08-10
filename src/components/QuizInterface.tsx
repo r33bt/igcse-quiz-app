@@ -33,6 +33,7 @@ export default function QuizInterface({
   const [quizSession, setQuizSession] = useState<QuizSession | null>(null)
   const [quizStarted, setQuizStarted] = useState(false)
   const [quizQuestions, setQuizQuestions] = useState<Question[]>([])
+  const [showCompletion, setShowCompletion] = useState(false)
   
   const router = useRouter()
   const supabase = createClient()
@@ -302,9 +303,8 @@ export default function QuizInterface({
       }
     }
 
-    // Standard completion (works with or without sessions)
-    alert(`Quiz completed!\n\nScore: ${sessionScore}/${totalQuestions} (${accuracy}%)\nXP Earned: ${sessionXP}\n\nGreat job!`)
-    router.push('/')
+    // Show completion screen instead of immediate redirect
+    setShowCompletion(true)
   }
 
   const goHome = () => {
@@ -333,6 +333,87 @@ export default function QuizInterface({
               </button>
             </>
           )}
+        </div>
+      </div>
+    )
+  }
+
+  // Show completion screen
+  if (showCompletion) {
+    const accuracy = Math.round((sessionScore / totalQuestions) * 100)
+    
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <div className="mb-8">
+              <div className="w-20 h-20 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+                <div className="text-green-600 text-4xl">🎉</div>
+              </div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">Quiz Completed!</h1>
+              <p className="text-xl text-gray-600">Great job on completing the {subject.name} quiz!</p>
+            </div>
+
+            {/* Results Summary */}
+            <div className="bg-white rounded-xl shadow-sm border p-8 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-blue-600 mb-2">{sessionScore}/{totalQuestions}</div>
+                  <div className="text-gray-600">Questions Correct</div>
+                </div>
+                <div className="text-center">
+                  <div className={`text-3xl font-bold mb-2 ${
+                    accuracy >= 80 ? 'text-green-600' : 
+                    accuracy >= 60 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {accuracy}%
+                  </div>
+                  <div className="text-gray-600">Accuracy</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-yellow-600 mb-2">{sessionXP}</div>
+                  <div className="text-gray-600">XP Earned</div>
+                </div>
+              </div>
+
+              <div className="text-center">
+                <div className={`inline-flex items-center px-6 py-3 rounded-full text-lg font-semibold ${
+                  accuracy >= 80 ? 'bg-green-100 text-green-800' :
+                  accuracy >= 60 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+                }`}>
+                  {accuracy >= 80 ? '🌟 Excellent work!' :
+                   accuracy >= 60 ? '👍 Good effort!' : '💪 Keep practicing!'}
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-x-4">
+              <button
+                onClick={() => router.push(`/quiz/${subject.id}`)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold text-lg"
+              >
+                Take Another Quiz
+              </button>
+              <button
+                onClick={() => router.push('/')}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-lg font-semibold text-lg"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+
+            {quizSession && (
+              <div className="mt-4">
+                <button
+                  onClick={() => router.push(`/history/${quizSession.id}`)}
+                  className="text-blue-600 hover:text-blue-700 font-medium underline"
+                >
+                  Review Your Answers
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     )
