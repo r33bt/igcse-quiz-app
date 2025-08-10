@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { User } from '@supabase/supabase-js'
 import { Profile, QuizSession, QuizAttempt, Question } from '@/lib/types'
 import { QuizSessionManager } from '@/lib/quiz-sessions'
@@ -19,7 +19,7 @@ export default function SessionReview({ user, profile: _profile, sessionId }: Se
   const [error, setError] = useState<string | null>(null)
 
   const router = useRouter()
-  const sessionManager = new QuizSessionManager()
+  const sessionManager = useMemo(() => new QuizSessionManager(), [])
 
   const loadSessionReview = useCallback(async () => {
     try {
@@ -27,13 +27,21 @@ export default function SessionReview({ user, profile: _profile, sessionId }: Se
       setError(null)
 
       // Get session details
-      const sessionDetails = await sessionManager.getQuizSessionDetails(sessionId)
-      if (!sessionDetails) {
-        throw new Error('Quiz session not found')
+      const reviewData = await sessionManager.getSessionReview(sessionId)
+      
+      if (!reviewData.session) {
+        setError('Quiz session not found')
+        return
       }
 
-      setSession(sessionDetails.session)
-      setAttempts(sessionDetails.attempts)
+      // Check if this session belongs to the current user
+      if (reviewData.session.user_id !== user.id) {
+        setError('Access denied - this quiz session does not belong to you')
+        return
+      }
+
+      setSession(reviewData.session)
+      setAttempts(reviewData.attempts)
 
     } catch (err) {
       console.error('Error loading session review:', err)

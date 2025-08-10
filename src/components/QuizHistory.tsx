@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { User } from '@supabase/supabase-js'
 import { Profile, QuizSession } from '@/lib/types'
 import { QuizSessionManager } from '@/lib/quiz-sessions'
@@ -25,7 +25,7 @@ export default function QuizHistory({ user, profile: _profile }: QuizHistoryProp
   })
 
   const router = useRouter()
-  const sessionManager = new QuizSessionManager()
+  const sessionManager = useMemo(() => new QuizSessionManager(), [])
 
   const loadQuizHistory = useCallback(async () => {
     try {

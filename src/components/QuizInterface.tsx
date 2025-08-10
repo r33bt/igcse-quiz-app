@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { User } from '@supabase/supabase-js'
 import { Profile, Subject, Question, UserProgress, QuizSession } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
@@ -37,7 +37,7 @@ export default function QuizInterface({
   
   const router = useRouter()
   const supabase = createClient()
-  const sessionManager = new QuizSessionManager()
+  const sessionManager = useMemo(() => new QuizSessionManager(), [])
   
   // Client-side randomization and limiting
   const shuffleArray = (array: Question[]): Question[] => {
@@ -83,7 +83,7 @@ export default function QuizInterface({
     }
     
     initializeQuiz()
-  }, [questions, user.id, subject.id, quizStarted]) // Run when questions are available
+  }, [questions, user.id, subject.id, quizStarted, sessionManager]) // Run when questions are available
 
   useEffect(() => {
     setStartTime(new Date())

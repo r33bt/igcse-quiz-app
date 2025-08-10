@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import { QuizSession, QuizAttempt, Question, Subject } from '@/lib/types'
+import { QuizSession, QuizAttempt, Question } from '@/lib/types'
 
 export class QuizSessionManager {
   private supabase = createClient()
