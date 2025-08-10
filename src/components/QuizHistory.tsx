@@ -11,7 +11,7 @@ interface QuizHistoryProps {
   profile: Profile | null
 }
 
-export default function QuizHistory({ user, profile: _profile }: QuizHistoryProps) {
+export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>) {
   const [quizSessions, setQuizSessions] = useState<QuizSession[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -192,7 +192,7 @@ export default function QuizHistory({ user, profile: _profile }: QuizHistoryProp
         <div className="bg-white rounded-xl shadow-sm border mb-8">
           <div className="p-6 border-b">
             <h2 className="text-xl font-bold text-gray-900">Topic Performance Analysis</h2>
-            <p className="text-gray-600 mt-1">See how you're performing across different topics</p>
+            <p className="text-gray-600 mt-1">See how you&apos;re performing across different topics</p>
           </div>
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -276,7 +276,6 @@ export default function QuizHistory({ user, profile: _profile }: QuizHistoryProp
           <div className="divide-y divide-gray-200">
             {filteredSessions.map((session) => {
               const isExpanded = expandedSessions.has(session.id)
-              const sessionDate = new Date(session.completed_at!)
               const timeTaken = session.session_duration ? Math.round(session.session_duration / 60) : null
               
               return (
