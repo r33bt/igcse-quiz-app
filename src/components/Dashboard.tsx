@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { User } from '@supabase/supabase-js'
 import { Profile, Subject, UserProgress } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
@@ -15,12 +15,68 @@ interface DashboardProps {
 
 export default function Dashboard({ user, profile, subjects, userProgress }: DashboardProps) {
   const [loading, setLoading] = useState(false)
+  const [recentActivity, setRecentActivity] = useState<any[]>([])
+  const [loadingActivity, setLoadingActivity] = useState(true)
   const router = useRouter()
   const supabase = createClient()
 
   // Ensure arrays are never null/undefined with comprehensive type checking
   const safeSubjects = Array.isArray(subjects) ? subjects : []
   const safeUserProgress = Array.isArray(userProgress) ? userProgress : []
+
+  // Load recent quiz activity
+  useEffect(() => {
+    const loadRecentActivity = async () => {
+      try {
+        setLoadingActivity(true)
+        
+        // Get recent quiz attempts with question and subject info
+        const { data: attempts, error } = await supabase
+          .from('quiz_attempts')
+          .select(`
+            *,
+            questions:questions(
+              question_text,
+              subjects:subjects(name, color)
+            )
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(5)
+
+        if (error) {
+          console.error('Error loading recent activity:', error)
+          return
+        }
+
+        // Group attempts by date for better display
+        const groupedActivity = []
+        const dateGroups: Record<string, any> = {}
+
+        attempts?.forEach(attempt => {
+          const date = new Date(attempt.created_at).toDateString()
+          if (!dateGroups[date]) {
+            dateGroups[date] = {
+              date,
+              attempts: []
+            }
+          }
+          dateGroups[date].attempts.push(attempt)
+        })
+
+        // Convert to array and take first 3 groups
+        const sortedGroups = Object.values(dateGroups).slice(0, 3)
+        setRecentActivity(sortedGroups)
+
+      } catch (error) {
+        console.error('Failed to load recent activity:', error)
+      } finally {
+        setLoadingActivity(false)
+      }
+    }
+
+    loadRecentActivity()
+  }, [user.id])
 
   const handleSignOut = async () => {
     setLoading(true)
@@ -249,6 +305,78 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
                     Continue →
                   </button>
                 </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Recent Quiz Activity */}
+        {recentActivity.length > 0 && (
+          <div className="mt-8 bg-white rounded-xl shadow-sm border p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Recent Quiz Activity</h3>
+              <button
+                onClick={() => router.push('/history')}
+                className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+              >
+                View All History →
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {recentActivity.map((group: any, groupIndex) => {
+                const formatDate = (dateString: string) => {
+                  const date = new Date(dateString)
+                  const today = new Date().toDateString()
+                  const yesterday = new Date(Date.now() - 86400000).toDateString()
+                  
+                  if (date.toDateString() === today) return 'Today'
+                  if (date.toDateString() === yesterday) return 'Yesterday'
+                  return date.toLocaleDateString()
+                }
+
+                return (
+                  <div key={groupIndex} className="border-l-4 border-blue-200 pl-4">
+                    <p className="text-sm font-medium text-gray-600 mb-2">
+                      {formatDate(group.date)}
+                    </p>
+                    <div className="space-y-2">
+                      {group.attempts.map((attempt: any, attemptIndex: number) => (
+                        <div 
+                          key={attemptIndex}
+                          className="flex items-center justify-between py-2"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div 
+                              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                              style={{ backgroundColor: attempt.questions?.subjects?.color || '#3B82F6' }}
+                            >
+                              {attempt.questions?.subjects?.name?.charAt(0) || 'Q'}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">
+                                {attempt.questions?.subjects?.name || 'Unknown Subject'}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {attempt.questions?.question_text?.substring(0, 50)}...
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className={`text-sm ${
+                              attempt.is_correct ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {attempt.is_correct ? '✅' : '❌'}
+                            </span>
+                            <span className="text-sm font-medium text-yellow-600">
+                              +{attempt.xp_earned || 0}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )
               })}
             </div>
