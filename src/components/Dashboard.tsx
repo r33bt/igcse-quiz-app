@@ -5,6 +5,7 @@ import { User } from '@supabase/supabase-js'
 import { Profile, Subject, UserProgress } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import AppNavigation from '@/components/AppNavigation'
 
 interface DashboardProps {
   user: User
@@ -78,12 +79,6 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
     loadRecentActivity()
   }, [user.id])
 
-  const handleSignOut = async () => {
-    setLoading(true)
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
-  }
 
   const startQuiz = (subjectId: string) => {
     router.push(`/quiz/${subjectId}`)
@@ -91,52 +86,7 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">IGCSE Quiz App</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => router.push('/review')}
-                className="flex items-center space-x-2 text-gray-600 hover:text-purple-600 transition-colors"
-              >
-                <span>🔍</span>
-                <span className="font-medium">Review</span>
-              </button>
-              <button
-                onClick={() => router.push('/history')}
-                className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors"
-              >
-                <span>📊</span>
-                <span className="font-medium">History</span>
-              </button>
-              <a
-                href="/guide"
-                className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors"
-              >
-                <span>📖</span>
-                <span className="font-medium">Guide</span>
-              </a>
-              <div className="flex items-center space-x-2">
-                <div className="text-yellow-500">⚡</div>
-                <span className="font-semibold">{profile?.xp || 0} XP</span>
-                <div className="text-purple-500">🏆</div>
-                <span className="font-semibold">Level {profile?.level || 1}</span>
-              </div>
-              <button
-                onClick={handleSignOut}
-                disabled={loading}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AppNavigation user={user} profile={profile} />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
