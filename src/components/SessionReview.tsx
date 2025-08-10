@@ -49,7 +49,7 @@ export default function SessionReview({ user, profile: _profile, sessionId }: Se
     } finally {
       setLoading(false)
     }
-  }, [sessionId, sessionManager])
+  }, [sessionId, sessionManager, user.id])
 
   useEffect(() => {
     loadSessionReview()
