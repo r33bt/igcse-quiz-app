@@ -31,8 +31,10 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
     })
     
     // TODO: Send to error monitoring service like Sentry
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'exception', {
+    // Note: gtag is only available if Google Analytics is loaded
+    const gtag = (window as { gtag?: (...args: unknown[]) => void }).gtag
+    if (typeof window !== 'undefined' && gtag) {
+      gtag('event', 'exception', {
         description: error.toString(),
         fatal: false
       })
