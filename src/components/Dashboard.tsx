@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
 import { Profile, Subject, UserProgress } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
@@ -14,9 +14,13 @@ interface DashboardProps {
   userProgress: UserProgress[]
 }
 
+interface ActivityGroup {
+  date: string
+  attempts: any[]
+}
+
 export default function Dashboard({ user, profile, subjects, userProgress }: DashboardProps) {
-  const [loading, setLoading] = useState(false)
-  const [recentActivity, setRecentActivity] = useState<any[]>([])
+  const [recentActivity, setRecentActivity] = useState<ActivityGroup[]>([])
   const [loadingActivity, setLoadingActivity] = useState(true)
   const router = useRouter()
   const supabase = createClient()
@@ -26,8 +30,7 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
   const safeUserProgress = Array.isArray(userProgress) ? userProgress : []
 
   // Load recent quiz activity
-  useEffect(() => {
-    const loadRecentActivity = async () => {
+  const loadRecentActivity = useCallback(async () => {
       try {
         setLoadingActivity(true)
         
@@ -51,8 +54,7 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
         }
 
         // Group attempts by date for better display
-        const groupedActivity = []
-        const dateGroups: Record<string, any> = {}
+        const dateGroups: Record<string, ActivityGroup> = {}
 
         attempts?.forEach(attempt => {
           const date = new Date(attempt.created_at).toDateString()
@@ -74,10 +76,11 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
       } finally {
         setLoadingActivity(false)
       }
-    }
+    }, [user.id, supabase])
 
+  useEffect(() => {
     loadRecentActivity()
-  }, [user.id])
+  }, [loadRecentActivity])
 
 
   const startQuiz = (subjectId: string) => {
@@ -282,7 +285,7 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
             </div>
             
             <div className="space-y-4">
-              {recentActivity.map((group: any, groupIndex) => {
+              {recentActivity.map((group, groupIndex) => {
                 const formatDate = (dateString: string) => {
                   const date = new Date(dateString)
                   const today = new Date().toDateString()
@@ -299,7 +302,7 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
                       {formatDate(group.date)}
                     </p>
                     <div className="space-y-2">
-                      {group.attempts.map((attempt: any, attemptIndex: number) => (
+                      {group.attempts.map((attempt, attemptIndex: number) => (
                         <div 
                           key={attemptIndex}
                           className="flex items-center justify-between py-2"

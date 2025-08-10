@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
 import { Profile } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
@@ -27,11 +27,7 @@ export default function SimpleAnswerReview({
   const router = useRouter()
   const supabase = createClient()
 
-  useEffect(() => {
-    loadRecentAttempts()
-  }, [user.id, subjectId])
-
-  const loadRecentAttempts = async () => {
+  const loadRecentAttempts = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -68,7 +64,11 @@ export default function SimpleAnswerReview({
     } finally {
       setLoading(false)
     }
-  }
+  }, [user.id, subjectId, limit, supabase])
+
+  useEffect(() => {
+    loadRecentAttempts()
+  }, [loadRecentAttempts])
 
   const toggleExpansion = (attemptId: string) => {
     setExpandedAttempt(expandedAttempt === attemptId ? null : attemptId)

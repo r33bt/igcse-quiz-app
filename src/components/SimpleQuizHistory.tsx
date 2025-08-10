@@ -1,10 +1,33 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
 import { Profile } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+
+interface QuizGroupData {
+  date: string
+  subject: {
+    name?: string
+    color?: string
+  }
+  attempts: {
+    id: string
+    is_correct: boolean
+    xp_earned: number
+    created_at: string
+    questions?: {
+      subjects?: {
+        name?: string
+        color?: string
+      }
+    }
+  }[]
+  totalQuestions: number
+  correctAnswers: number
+  totalXP: number
+}
 
 interface SimpleQuizHistoryProps {
   user: User
@@ -12,7 +35,7 @@ interface SimpleQuizHistoryProps {
 }
 
 export default function SimpleQuizHistory({ user, profile }: SimpleQuizHistoryProps) {
-  const [quizData, setQuizData] = useState<any[]>([])
+  const [quizData, setQuizData] = useState<QuizGroupData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [stats, setStats] = useState({
@@ -26,11 +49,7 @@ export default function SimpleQuizHistory({ user, profile }: SimpleQuizHistoryPr
   const router = useRouter()
   const supabase = createClient()
 
-  useEffect(() => {
-    loadQuizHistory()
-  }, [user.id])
-
-  const loadQuizHistory = async () => {
+  const loadQuizHistory = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -54,8 +73,7 @@ export default function SimpleQuizHistory({ user, profile }: SimpleQuizHistoryPr
       }
 
       // Group attempts by date and subject
-      const groupedData = []
-      const dateGroups: Record<string, any> = {}
+      const dateGroups: Record<string, QuizGroupData> = {}
 
       attempts?.forEach(attempt => {
         const date = new Date(attempt.created_at).toDateString()
@@ -107,7 +125,11 @@ export default function SimpleQuizHistory({ user, profile }: SimpleQuizHistoryPr
     } finally {
       setLoading(false)
     }
-  }
+  }, [user.id, supabase])
+
+  useEffect(() => {
+    loadQuizHistory()
+  }, [loadQuizHistory])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -206,7 +228,7 @@ export default function SimpleQuizHistory({ user, profile }: SimpleQuizHistoryPr
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
-            {quizData.map((group: any, index) => {
+            {quizData.map((group, index) => {
               const accuracy = Math.round((group.correctAnswers / group.totalQuestions) * 100)
               
               return (
