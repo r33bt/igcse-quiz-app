@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import QuizInterface from '@/components/QuizInterface'
+import QuizInterfaceV2 from '@/components/QuizInterfaceV2'
 import ErrorBoundary from '@/components/ErrorBoundary'
 
 interface QuizPageProps {
@@ -114,7 +114,7 @@ export default async function QuizPage({ params }: QuizPageProps) {
 
   return (
     <ErrorBoundary>
-      <QuizInterface 
+      <QuizInterfaceV2 
         user={user}
         profile={profile}
         subject={subject}
