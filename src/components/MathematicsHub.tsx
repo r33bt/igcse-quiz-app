@@ -163,19 +163,25 @@ export default function MathematicsHub({
           </div>
         )}
 
-        {/* Quick Stats Overview */}
+        {/* Quiz Progress Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm border p-6 text-center">
-            <div className="text-3xl font-bold text-blue-600 mb-2">{totalQuestions}</div>
-            <div className="text-gray-600">Questions Available</div>
+            <div className="text-3xl font-bold text-blue-600 mb-2">{recentSessions.length}</div>
+            <div className="text-gray-600">Quizzes Completed</div>
           </div>
           <div className="bg-white rounded-xl shadow-sm border p-6 text-center">
-            <div className="text-3xl font-bold text-green-600 mb-2">{questionsAnswered}</div>
-            <div className="text-gray-600">Questions Attempted</div>
+            <div className="text-3xl font-bold text-green-600 mb-2">
+              {recentSessions.length > 0 
+                ? Math.round(recentSessions.reduce((acc, s) => acc + s.accuracy_percentage, 0) / recentSessions.length)
+                : 0}%
+            </div>
+            <div className="text-gray-600">Average Quiz Score</div>
           </div>
           <div className="bg-white rounded-xl shadow-sm border p-6 text-center">
-            <div className="text-3xl font-bold text-yellow-600 mb-2">{accuracy.toFixed(0)}%</div>
-            <div className="text-gray-600">Overall Accuracy</div>
+            <div className="text-3xl font-bold text-yellow-600 mb-2">
+              {recentSessions.reduce((acc, s) => acc + s.total_xp_earned, 0)}
+            </div>
+            <div className="text-gray-600">Total Quiz XP</div>
           </div>
           <div className="bg-white rounded-xl shadow-sm border p-6 text-center">
             <div className="text-3xl font-bold text-purple-600 mb-2">{currentLevel}</div>
@@ -183,153 +189,258 @@ export default function MathematicsHub({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Main Quiz Selection and Progress Section */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           
-          {/* Topics Overview */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">📚 Topics Available</h3>
-            <div className="space-y-3">
-              {topicNames.map((topic) => {
-                const topicData = questionsByTopic[topic]
-                return (
-                  <div key={topic} className="border-l-4 border-blue-400 bg-blue-50 p-4 rounded-r-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <h4 className="font-semibold text-blue-900">{topic}</h4>
-                      <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                        {topicData.total} questions
-                      </span>
-                    </div>
-                    <div className="flex space-x-4 text-sm">
-                      <span className="text-green-600">🟢 Easy: {topicData.easy}</span>
-                      <span className="text-yellow-600">🟡 Medium: {topicData.medium}</span>
-                      <span className="text-red-600">🔴 Hard: {topicData.hard}</span>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+          {/* Quiz Selection */}
+          <div className="xl:col-span-2 bg-white rounded-xl shadow-sm border p-6">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">🎯 Choose Your Quiz</h3>
             
-            {/* Start Quiz Button */}
-            <div className="mt-6 text-center">
-              <button
-                onClick={() => router.push(`/quiz/${subject.id}`)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
-              >
-                🚀 Start Mathematics Quiz
-              </button>
+            {/* Quick Start - Onboarding Quiz */}
+            {recentSessions.length === 0 && (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 mb-6">
+                <div className="flex items-center space-x-4">
+                  <div className="text-4xl">🌟</div>
+                  <div className="flex-1">
+                    <h4 className="text-xl font-bold text-blue-900 mb-2">Start Your Mathematics Journey!</h4>
+                    <p className="text-blue-800 mb-4">Take your first mixed quiz to get familiar with the system</p>
+                    <button
+                      onClick={() => router.push(`/quiz/${subject.id}`)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                    >
+                      🚀 Start Onboarding Quiz
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Quiz Type Selection */}
+            <div className="space-y-6">
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">📚 Topic-Focused Quizzes</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {topicNames.map((topic) => {
+                    const topicData = questionsByTopic[topic]
+                    return (
+                      <div key={topic} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-center mb-3">
+                          <h5 className="font-semibold text-gray-900">{topic}</h5>
+                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                            {topicData.total} questions
+                          </span>
+                        </div>
+                        <div className="flex space-x-2 text-xs mb-3">
+                          <span className="text-green-600">Easy: {topicData.easy}</span>
+                          <span className="text-yellow-600">Med: {topicData.medium}</span>
+                          <span className="text-red-600">Hard: {topicData.hard}</span>
+                        </div>
+                        <button
+                          onClick={() => router.push(`/quiz/${subject.id}?topic=${encodeURIComponent(topic)}`)}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Start {topic} Quiz
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">⚡ Difficulty-Based Quizzes</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="border border-green-200 bg-green-50 rounded-lg p-4">
+                    <div className="text-center mb-3">
+                      <div className="text-2xl mb-2">🟢</div>
+                      <h5 className="font-semibold text-green-800">Easy Quiz</h5>
+                      <p className="text-sm text-green-600">Foundation concepts</p>
+                    </div>
+                    <button
+                      onClick={() => router.push(`/quiz/${subject.id}?difficulty=1`)}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Start Easy Quiz
+                    </button>
+                  </div>
+                  
+                  <div className="border border-yellow-200 bg-yellow-50 rounded-lg p-4">
+                    <div className="text-center mb-3">
+                      <div className="text-2xl mb-2">🟡</div>
+                      <h5 className="font-semibold text-yellow-800">Medium Quiz</h5>
+                      <p className="text-sm text-yellow-600">Intermediate level</p>
+                    </div>
+                    <button
+                      onClick={() => router.push(`/quiz/${subject.id}?difficulty=2`)}
+                      className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Start Medium Quiz
+                    </button>
+                  </div>
+                  
+                  <div className="border border-red-200 bg-red-50 rounded-lg p-4">
+                    <div className="text-center mb-3">
+                      <div className="text-2xl mb-2">🔴</div>
+                      <h5 className="font-semibold text-red-800">Hard Quiz</h5>
+                      <p className="text-sm text-red-600">Advanced problems</p>
+                    </div>
+                    <button
+                      onClick={() => router.push(`/quiz/${subject.id}?difficulty=3`)}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Start Hard Quiz
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">🎲 Mixed Practice</h4>
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h5 className="font-semibold text-gray-900">Random Mixed Quiz</h5>
+                      <p className="text-sm text-gray-600">All topics and difficulties combined</p>
+                    </div>
+                    <button
+                      onClick={() => router.push(`/quiz/${subject.id}`)}
+                      className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                    >
+                      Start Mixed Quiz
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Recent Activity */}
+          {/* Quiz Progression & Activity */}
           <div className="space-y-6">
             
-            {/* Recent Quiz Sessions */}
-            {recentSessions.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm border p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-bold text-gray-900">📈 Recent Quiz Sessions</h3>
-                  <Link 
-                    href="/history"
-                    className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+            {/* Quiz Progression */}
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-gray-900">🏆 Your Quiz Journey</h3>
+                <Link 
+                  href="/history"
+                  className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+                >
+                  View All →
+                </Link>
+              </div>
+              
+              {recentSessions.length === 0 && (
+                <div className="text-center py-8">
+                  <div className="text-4xl mb-4">🎯</div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">Ready to start?</h4>
+                  <p className="text-gray-600 mb-4">Take your first quiz to begin your mathematics journey!</p>
+                  <button
+                    onClick={() => router.push(`/quiz/${subject.id}`)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold"
+                  >
+                    Start First Quiz ✨
+                  </button>
+                </div>
+              )}
+
+              {recentSessions.length > 0 && (
+                <div className="space-y-3">
+                  {recentSessions.slice(0, 5).map((session, index) => {
+                    const quizNumber = recentSessions.length - index;
+                    const isLatest = index === 0;
+                    const quizType = session.session_type || 'mixed';
+                    const difficulty = session.difficulty_level ? 
+                      ['Easy', 'Medium', 'Hard'][session.difficulty_level - 1] : 
+                      'Mixed';
+                    
+                    return (
+                      <div key={session.id} className={`p-4 rounded-lg border-l-4 ${
+                        isLatest ? 'bg-blue-50 border-l-blue-500' : 'bg-gray-50 border-l-gray-300'
+                      }`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-3">
+                            <div className={`text-lg font-bold px-2 py-1 rounded-full text-xs ${
+                              isLatest ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              Quiz {quizNumber}
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <span className={`w-2 h-2 rounded-full ${
+                                session.accuracy_percentage >= 80 ? 'bg-green-500' :
+                                session.accuracy_percentage >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                              }`}></span>
+                              <span className="text-sm font-medium">
+                                {session.correct_answers}/{session.total_questions}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-bold text-yellow-600">+{session.total_xp_earned} XP</div>
+                            <div className="text-xs text-gray-500">{session.accuracy_percentage.toFixed(0)}%</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-gray-600">
+                          <span>{difficulty} • {new Date(session.completed_at).toLocaleDateString()}</span>
+                          {isLatest && <span className="text-blue-600 font-medium">Latest</span>}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Minimized Recent Questions */}
+            {recentAttempts.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-semibold text-gray-900">🔍 Recent Questions</h4>
+                  <button 
+                    onClick={() => router.push('/history')}
+                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
                   >
                     View All →
-                  </Link>
+                  </button>
                 </div>
-                <div className="space-y-3">
-                  {recentSessions.slice(0, 3).map((session) => (
-                    <div key={session.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-3 h-3 rounded-full ${
-                          session.accuracy_percentage >= 80 ? 'bg-green-500' :
-                          session.accuracy_percentage >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-                        }`}></div>
-                        <div>
-                          <div className="font-medium">{session.correct_answers}/{session.total_questions} correct</div>
-                          <div className="text-sm text-gray-600">
-                            {new Date(session.completed_at).toLocaleDateString()}
-                          </div>
+                <div className="space-y-2">
+                  {recentAttempts.slice(0, 3).map((attempt) => (
+                    <div key={attempt.id} className="flex items-center space-x-3 p-2 rounded bg-gray-50">
+                      <span className={`text-sm ${attempt.is_correct ? 'text-green-500' : 'text-red-500'}`}>
+                        {attempt.is_correct ? '✅' : '❌'}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs text-gray-600 truncate">
+                          {attempt.questions.topic}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-bold text-yellow-600">+{session.total_xp_earned} XP</div>
-                        <div className="text-sm text-gray-600">{session.accuracy_percentage.toFixed(0)}%</div>
-                      </div>
+                      <div className="text-xs text-yellow-600 font-medium">+{attempt.xp_earned}</div>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {/* Recent Individual Questions */}
-            {recentAttempts.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm border p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">🔍 Recent Questions</h3>
-                <div className="space-y-3">
-                  {recentAttempts.slice(0, 5).map((attempt) => (
-                    <div key={attempt.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <span className={`text-lg ${attempt.is_correct ? 'text-green-500' : 'text-red-500'}`}>
-                          {attempt.is_correct ? '✅' : '❌'}
-                        </span>
-                        <div className="flex-1">
-                          <div className="font-medium text-sm">
-                            {attempt.questions.question_text.length > 50 
-                              ? `${attempt.questions.question_text.substring(0, 50)}...`
-                              : attempt.questions.question_text}
-                          </div>
-                          <div className="text-xs text-gray-600">
-                            {attempt.questions.topic} • Level {attempt.questions.difficulty_level}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium text-yellow-600">+{attempt.xp_earned} XP</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Empty State for New Users */}
-            {recentAttempts.length === 0 && recentSessions.length === 0 && (
-              <div className="bg-white rounded-xl shadow-sm border p-8 text-center">
-                <div className="text-4xl mb-4">🎯</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Ready to get started?</h3>
-                <p className="text-gray-600 mb-4">
-                  Take your first Mathematics quiz to begin tracking your progress!
-                </p>
-                <button
-                  onClick={() => router.push(`/quiz/${subject.id}`)}
-                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold"
-                >
-                  Take First Quiz ✨
-                </button>
               </div>
             )}
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="mt-8 flex justify-center space-x-4">
-          <Link
-            href={`/quiz/${subject.id}`}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold"
-          >
-            📝 Take Quiz
-          </Link>
-          <Link
-            href="/history"
-            className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold"
-          >
-            📊 View History
-          </Link>
-          <Link
-            href="/guide"
-            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold"
-          >
-            📖 User Guide
-          </Link>
+        {/* Quick Access Footer */}
+        <div className="mt-8 bg-white rounded-xl shadow-sm border p-6">
+          <div className="text-center">
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">Need Help Getting Started?</h4>
+            <div className="flex justify-center space-x-4">
+              <Link
+                href="/history"
+                className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold"
+              >
+                📊 View Full History
+              </Link>
+              <Link
+                href="/guide"
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold"
+              >
+                📖 User Guide
+              </Link>
+            </div>
+          </div>
         </div>
       </main>
     </div>

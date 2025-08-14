@@ -240,7 +240,7 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
                   
                   <div className="px-6 pb-6">
                     <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
-                      Start Quiz
+                      {subject.name === 'Mathematics' ? 'Mathematics Hub' : 'Start Quiz'}
                     </button>
                   </div>
                 </div>
