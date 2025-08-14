@@ -37,7 +37,6 @@ interface MathematicsHubProps {
 }
 
 export default function MathematicsHub({
-  user,
   profile,
   subject,
   questions,
@@ -128,7 +127,7 @@ export default function MathematicsHub({
                   Welcome to your Mathematics Learning Hub!
                 </h3>
                 <p className="text-blue-800 mb-4">
-                  This is your dedicated space for mastering IGCSE Mathematics. Here's how it works:
+                  This is your dedicated space for mastering IGCSE Mathematics. Here&apos;s how it works:
                 </p>
                 <div className="grid md:grid-cols-3 gap-4 mb-4">
                   <div className="flex items-start space-x-2">
@@ -157,7 +156,7 @@ export default function MathematicsHub({
                   onClick={() => setShowTutorial(false)}
                   className="text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  Got it, let's start! ✨
+                  Got it, let&apos;s start! ✨
                 </button>
               </div>
             </div>
