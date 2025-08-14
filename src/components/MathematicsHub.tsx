@@ -48,9 +48,6 @@ export default function MathematicsHub({
   const router = useRouter()
 
   // Calculate statistics
-  const totalQuestions = questions.length
-  const questionsAnswered = userProgress?.total_questions_answered || 0
-  const accuracy = userProgress?.accuracy_percentage || 0
   const currentLevel = profile?.level || 1
   const totalXP = profile?.xp || 0
 
@@ -348,10 +345,7 @@ export default function MathematicsHub({
                   {recentSessions.slice(0, 5).map((session, index) => {
                     const quizNumber = recentSessions.length - index;
                     const isLatest = index === 0;
-                    const quizType = session.session_type || 'mixed';
-                    const difficulty = session.difficulty_level ? 
-                      ['Easy', 'Medium', 'Hard'][session.difficulty_level - 1] : 
-                      'Mixed';
+                    const difficulty = 'Mixed'; // All quizzes are currently mixed type
                     
                     return (
                       <div key={session.id} className={`p-4 rounded-lg border-l-4 ${
