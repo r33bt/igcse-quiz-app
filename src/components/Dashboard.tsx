@@ -92,7 +92,13 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
 
 
   const startQuiz = (subjectId: string) => {
-    router.push(`/quiz/${subjectId}`)
+    // Check if this is Mathematics - redirect to mathematics hub instead of direct quiz
+    const mathSubject = safeSubjects.find(s => s.name === 'Mathematics')
+    if (mathSubject && subjectId === mathSubject.id) {
+      router.push('/mathematics')
+    } else {
+      router.push(`/quiz/${subjectId}`)
+    }
   }
 
   return (

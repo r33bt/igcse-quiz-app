@@ -535,7 +535,17 @@ export default function QuizInterfaceV2({
               </div>
               {currentQuestion.explanation && (
                 <div className={`text-base leading-relaxed ${isCorrect ? 'text-green-700' : 'text-red-700'}`}>
-                  <strong>Explanation:</strong> {currentQuestion.explanation}
+                  <strong className="block mb-2">Step-by-step solution:</strong>
+                  <div className="pl-4 space-y-1">
+                    {currentQuestion.explanation.split('.').filter(step => step.trim()).map((step, index) => (
+                      <div key={index} className="flex items-start space-x-2">
+                        <span className="font-bold text-sm mt-0.5">
+                          {index + 1}.
+                        </span>
+                        <span>{step.trim()}.</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
