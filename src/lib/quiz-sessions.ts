@@ -67,7 +67,7 @@ export class QuizSessionManager {
           session_type: sessionType,
           started_at: new Date().toISOString()
         })
-        .select()
+        .select('*')
         .single()
 
       if (error) {
@@ -334,3 +334,5 @@ export class QuizSessionManager {
     }
   }
 }
+
+
