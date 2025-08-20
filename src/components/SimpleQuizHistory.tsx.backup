@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
@@ -211,7 +211,7 @@ export default function SimpleQuizHistory({ user }: Omit<SimpleQuizHistoryProps,
 
         {quizData.length === 0 ? (
           <div className="p-8 text-center">
-            <div className="text-gray-400 text-4xl mb-4">ðŸ“š</div>
+            <div className="text-gray-400 text-4xl mb-4">📚</div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No Quiz History Yet</h3>
             <p className="text-gray-600 mb-6">Start taking quizzes to see your progress here!</p>
             <button
@@ -283,7 +283,7 @@ export default function SimpleQuizHistory({ user }: Omit<SimpleQuizHistoryProps,
                             : 'bg-red-100 text-red-700'
                         }`}
                       >
-                        {attempt.is_correct ? 'âœ…' : 'âŒ'} +{attempt.xp_earned || 0} XP
+                        {attempt.is_correct ? '✅' : '❌'} +{attempt.xp_earned || 0} XP
                       </div>
                     ))}
                     {group.attempts.length > 6 && (
