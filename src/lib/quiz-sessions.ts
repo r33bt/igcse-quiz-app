@@ -10,22 +10,22 @@ export class QuizSessionManager {
   private async ensureValidSession(): Promise<boolean> {
     try {
       const { data: { session }, error } = await this.supabase.auth.getSession()
-      
+
       if (error) {
         console.error('Session check failed:', error.message)
         return false
       }
-      
+
       if (!session) {
         console.error('No active session found')
         return false
       }
-      
+
       // Check if token is expired or will expire soon (within 5 minutes)
       const tokenExpiresAt = session.expires_at
       const currentTime = Math.floor(Date.now() / 1000)
       const timeUntilExpiry = tokenExpiresAt! - currentTime
-      
+
       if (timeUntilExpiry < 300) { // Less than 5 minutes
         console.log('Token expiring soon, refreshing...')
         const { error: refreshError } = await this.supabase.auth.refreshSession()
@@ -33,9 +33,9 @@ export class QuizSessionManager {
           console.error('Token refresh failed:', refreshError.message)
           return false
         }
-        console.log('âœ… Token refreshed successfully')
+        console.log('✅ Token refreshed successfully')
       }
-      
+
       return true
     } catch (error) {
       console.error('Session validation failed:', error)
@@ -47,8 +47,8 @@ export class QuizSessionManager {
    * Create a new quiz session
    */
   async createSession(
-    userId: string, 
-    subjectId: string, 
+    userId: string,
+    subjectId: string,
     sessionType: 'practice' | 'timed' | 'review' = 'practice'
   ): Promise<QuizSession | null> {
     try {
@@ -72,12 +72,12 @@ export class QuizSessionManager {
 
       if (error) {
         console.error('Error creating quiz session:', error.message)
-        
+
         // If it's an auth error, suggest re-login
         if (error.message.includes('JWT') || error.message.includes('expired') || error.message.includes('policy')) {
-          console.error('ðŸ”‘ Authentication issue detected. Please sign out and sign back in.')
+          console.error('🔒 Authentication issue detected. Please sign out and sign back in.')
         }
-        
+
         return null
       }
 
@@ -161,12 +161,12 @@ export class QuizSessionManager {
 
       if (error) {
         console.error('Error recording quiz attempt:', error.message)
-        
+
         // If it's an auth error, suggest re-login
         if (error.message.includes('JWT') || error.message.includes('expired') || error.message.includes('policy')) {
-          console.error('ðŸ”‘ Authentication issue detected. Please sign out and sign back in.')
+          console.error('🔒 Authentication issue detected. Please sign out and sign back in.')
         }
-        
+
         return false
       }
 
@@ -184,10 +184,7 @@ export class QuizSessionManager {
     try {
       const { data, error } = await this.supabase
         .from('quiz_sessions')
-        .select(`
-          *,
-          
-        `)
+        .select('*')
         .eq('user_id', userId)
         .not('completed_at', 'is', null)
         .order('completed_at', { ascending: false })
@@ -216,10 +213,7 @@ export class QuizSessionManager {
       // Get session details
       const { data: sessionData, error: sessionError } = await this.supabase
         .from('quiz_sessions')
-        .select(`
-          *,
-          
-        `)
+        .select('*')
         .eq('id', sessionId)
         .single()
 
@@ -231,10 +225,7 @@ export class QuizSessionManager {
       // Get all attempts for this session
       const { data: attemptsData, error: attemptsError } = await this.supabase
         .from('quiz_attempts')
-        .select(`
-          *,
-          questions:questions(*)
-        `)
+        .select('*')
         .eq('quiz_session_id', sessionId)
         .order('question_order', { ascending: true })
 
@@ -284,7 +275,7 @@ export class QuizSessionManager {
       }
 
       const sessions = data || []
-      
+
       const totalQuizzes = sessions.length
       const totalQuestions = sessions.reduce((sum, s) => sum + (s.total_questions || 0), 0)
       const totalCorrect = sessions.reduce((sum, s) => sum + (s.correct_answers || 0), 0)
@@ -300,11 +291,11 @@ export class QuizSessionManager {
 
       let streakDays = 0
       let currentDate = new Date()
-      
+
       for (const dateStr of recentDates) {
         const sessionDate = new Date(dateStr!)
         const diffDays = Math.floor((currentDate.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24))
-        
+
         if (diffDays <= streakDays + 1) {
           streakDays++
           currentDate = sessionDate
@@ -334,5 +325,3 @@ export class QuizSessionManager {
     }
   }
 }
-
-
