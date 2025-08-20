@@ -55,13 +55,7 @@ export default function SimpleAnswerReview({
 
       let query = supabase
         .from('quiz_attempts')
-        .select(`
-          *,
-          questions:questions(
-            *,
-            subjects:subjects(*)
-          )
-        `)
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(limit)
