@@ -51,12 +51,12 @@ export default async function SessionHistoryPage({ params }: Props) {
           backUrl="/history"
         />
         <main className="container mx-auto px-4 py-8">
-          <SessionReview 
-            user={user} 
-            profile={profile} 
-            sessionId={sessionId} 
-          />
-        </main>
+  <SessionReview 
+    user={user} 
+    sessionId={sessionId} 
+  />
+</main>
+
       </div>
     </ErrorBoundary>
   )
