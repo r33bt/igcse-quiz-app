@@ -1,14 +1,19 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import QuizHistory from '@/components/QuizHistory'
+import SessionReview from '@/components/SessionReview'
 import AppNavigation from '@/components/AppNavigation'
 import ErrorBoundary from '@/components/ErrorBoundary'
 
-export default async function HistoryPage() {
+interface Props {
+  params: Promise<{ sessionId: string }>
+}
+
+export default async function SessionHistoryPage({ params }: Props) {
+  const { sessionId } = await params
   const supabase = await createClient()
-  
+
   const { data: { user } } = await supabase.auth.getUser()
-  
+
   if (!user) {
     redirect('/login')
   }
@@ -31,6 +36,7 @@ export default async function HistoryPage() {
       })
       .select()
       .single()
+    
     profile = newProfile
   }
 
@@ -40,11 +46,17 @@ export default async function HistoryPage() {
         <AppNavigation 
           user={user} 
           profile={profile} 
-          title="Quiz History"
+          title="Quiz Session Review"
           showBackButton={true}
-          backUrl="/"
+          backUrl="/history"
         />
-        <QuizHistory user={user} />
+        <main className="container mx-auto px-4 py-8">
+          <SessionReview 
+            user={user} 
+            profile={profile} 
+            sessionId={sessionId} 
+          />
+        </main>
       </div>
     </ErrorBoundary>
   )
