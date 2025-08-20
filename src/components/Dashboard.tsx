@@ -47,13 +47,7 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
         // Get recent quiz attempts with question and subject info
         const { data: attempts, error } = await supabase
           .from('quiz_attempts')
-          .select(`
-            *,
-            questions:questions(
-              question_text,
-              subjects:subjects(name, color)
-            )
-          `)
+          .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(5)
