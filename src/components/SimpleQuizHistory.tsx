@@ -58,13 +58,7 @@ export default function SimpleQuizHistory({ user }: Omit<SimpleQuizHistoryProps,
       // Get quiz attempts with question and subject info (grouped by day)
       const { data: attempts, error: attemptsError } = await supabase
         .from('quiz_attempts')
-        .select(`
-          *,
-          questions:questions(
-            *,
-            subjects:subjects(*)
-          )
-        `)
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(100)
