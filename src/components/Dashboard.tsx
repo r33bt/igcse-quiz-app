@@ -36,8 +36,8 @@ interface DashboardStats {
   questionAttempts: number
   answerAccuracy: number
   quizzesCompleted: number
-  xpEarned: totalXP number
-  totalQuizzes: number
+  xpEarned: number
+  
 }
 
 export default function Dashboard({ user, profile, subjects }: DashboardProps) {
@@ -352,6 +352,8 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
     </div>
   )
 }
+
+
 
 
 
