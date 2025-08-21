@@ -1,4 +1,4 @@
-﻿import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import { QuizSession, QuizAttempt, Question } from '@/lib/types'
 
 export class QuizSessionManager {
@@ -33,7 +33,7 @@ export class QuizSessionManager {
           console.error('Token refresh failed:', refreshError.message)
           return false
         }
-        console.log('✅ Token refreshed successfully')
+        console.log('? Token refreshed successfully')
       }
 
       return true
@@ -75,7 +75,7 @@ export class QuizSessionManager {
 
         // If it's an auth error, suggest re-login
         if (error.message.includes('JWT') || error.message.includes('expired') || error.message.includes('policy')) {
-          console.error('🔒 Authentication issue detected. Please sign out and sign back in.')
+          console.error('?? Authentication issue detected. Please sign out and sign back in.')
         }
 
         return null
@@ -164,7 +164,7 @@ export class QuizSessionManager {
 
         // If it's an auth error, suggest re-login
         if (error.message.includes('JWT') || error.message.includes('expired') || error.message.includes('policy')) {
-          console.error('🔒 Authentication issue detected. Please sign out and sign back in.')
+          console.error('?? Authentication issue detected. Please sign out and sign back in.')
         }
 
         return false
@@ -325,3 +325,4 @@ export class QuizSessionManager {
     }
   }
 }
+
