@@ -1,0 +1,18 @@
+﻿import { DashboardDataService } from '@/lib/services/DashboardDataService'
+
+// In Dashboard component, replace stats loading with:
+const dashboardService = new DashboardDataService()
+const userProgress = await dashboardService.getUserProgress(user.id)
+
+// Update stats display with clear labels:
+<div className="text-sm font-medium text-gray-600">Questions Answered</div>
+<div className="text-2xl font-bold text-gray-900">{userProgress.questionsAnswered}</div>
+
+<div className="text-sm font-medium text-gray-600">Answer Accuracy</div>  
+<div className="text-2xl font-bold text-gray-900">{userProgress.answerAccuracy}%</div>
+
+<div className="text-sm font-medium text-gray-600">XP Earned</div>
+<div className="text-2xl font-bold text-gray-900">{userProgress.xpEarned}</div>
+
+<div className="text-sm font-medium text-gray-600">Quizzes Completed</div>
+<div className="text-2xl font-bold text-gray-900">{userProgress.quizzesCompleted}</div>

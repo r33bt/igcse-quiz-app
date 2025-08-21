@@ -1,9 +1,10 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
 import { Profile, Subject, UserProgress } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
+import { DashboardDataService } from '@/lib/services/DashboardDataService'
 import { useRouter } from 'next/navigation'
 import AppNavigation from '@/components/AppNavigation'
 
@@ -31,73 +32,45 @@ interface ActivityGroup {
   }[]
 }
 
-interface DashboardStats {
-  totalQuestions: number
-  totalAccuracy: number
-  studyStreak: number
-  totalXP: number
-  totalQuizzes: number
+interface UserProgressStats {
+  questionsAnswered: number
+  questionAttempts: number
+  quizzesCompleted: number
+  answerAccuracy: number
+  xpEarned: number
 }
 
 export default function Dashboard({ user, profile, subjects }: DashboardProps) {
   const [recentActivity, setRecentActivity] = useState<ActivityGroup[]>([])
-  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
-    totalQuestions: 0,
-    totalAccuracy: 0,
-    studyStreak: 0,
-    totalXP: 0,
-    totalQuizzes: 0
+  const [userStats, setUserStats] = useState<UserProgressStats>({
+    questionsAnswered: 0,
+    questionAttempts: 0,
+    quizzesCompleted: 0,
+    answerAccuracy: 0,
+    xpEarned: 0
   })
   const [loading, setLoading] = useState(true)
   
   const router = useRouter()
   const supabase = createClient()
+  const dashboardService = new DashboardDataService()
 
-  // Ensure arrays are never null/undefined with comprehensive type checking
+  // Ensure arrays are never null/undefined
   const safeSubjects = Array.isArray(subjects) ? subjects : []
 
-  // Load dashboard statistics from actual quiz data
-  const loadDashboardStats = useCallback(async () => {
+  // Load user statistics using centralized service
+  const loadUserStats = useCallback(async () => {
     try {
-      // Get quiz sessions for total quizzes and XP
-      const { data: sessions } = await supabase
-        .from('quiz_sessions')
-        .select('*')
-        .eq('user_id', user.id)
-
-      // Get quiz attempts for accuracy and question count  
-      const { data: attempts } = await supabase
-        .from('quiz_attempts')
-        .select('*')
-        .eq('user_id', user.id)
-
-      if (sessions && attempts) {
-        const totalQuizzes = sessions.length
-        const totalQuestions = attempts.length
-        const correctAnswers = attempts.filter(a => a.is_correct).length
-        const totalAccuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0
-        const totalXP = sessions.reduce((sum, session) => sum + (session.total_xp_earned || 0), 0)
-        
-        // Calculate study streak (use profile data or calculate from recent activity)
-        const studyStreak = profile?.study_streak || 0
-
-        setDashboardStats({
-          totalQuestions,
-          totalAccuracy,
-          studyStreak,
-          totalXP,
-          totalQuizzes
-        })
-      }
+      const stats = await dashboardService.getUserProgress(user.id)
+      setUserStats(stats)
     } catch (error) {
-      console.error('Error loading dashboard stats:', error)
+      console.error('Error loading user stats:', error)
     }
-  }, [user.id, supabase, profile])
+  }, [user.id, dashboardService])
 
   // Load recent quiz activity
   const loadRecentActivity = useCallback(async () => {
     try {
-      // Get recent quiz attempts with question and subject info
       const { data: attempts, error } = await supabase
         .from('quiz_attempts')
         .select('*')
@@ -138,15 +111,14 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
       setLoading(true)
       await Promise.all([
         loadRecentActivity(),
-        loadDashboardStats()
+        loadUserStats()
       ])
       setLoading(false)
     }
     loadData()
-  }, [loadRecentActivity, loadDashboardStats])
+  }, [loadRecentActivity, loadUserStats])
 
   const startQuiz = (subjectId: string) => {
-    // Check if this is Mathematics - redirect to mathematics hub instead of direct quiz
     const mathSubject = safeSubjects.find(s => s.name === 'Mathematics')
     if (mathSubject && subjectId === mathSubject.id) {
       router.push('/mathematics')
@@ -188,18 +160,19 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
           </div>
         </div>
 
-        {/* Stats Cards - Using Real Data */}
+        {/* Stats Cards - Clear Labels */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm p-6 border">
             <div className="flex items-center">
               <div className="p-3 bg-blue-100 rounded-full">
-                <div className="w-6 h-6 text-blue-600">📊</div>
+                <div className="w-6 h-6 text-blue-600">📝</div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Questions</p>
+                <p className="text-sm font-medium text-gray-600">Questions Answered</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {loading ? '...' : dashboardStats.totalQuestions}
+                  {loading ? '...' : userStats.questionsAnswered}
                 </p>
+                <p className="text-xs text-gray-500">Unique questions attempted</p>
               </div>
             </div>
           </div>
@@ -210,24 +183,11 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
                 <div className="w-6 h-6 text-green-600">✅</div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Overall Accuracy</p>
+                <p className="text-sm font-medium text-gray-600">Answer Accuracy</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {loading ? '...' : `${dashboardStats.totalAccuracy}%`}
+                  {loading ? '...' : `${userStats.answerAccuracy}%`}
                 </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6 border">
-            <div className="flex items-center">
-              <div className="p-3 bg-orange-100 rounded-full">
-                <div className="w-6 h-6 text-orange-600">🔥</div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Study Streak</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {loading ? '...' : `${dashboardStats.studyStreak} days`}
-                </p>
+                <p className="text-xs text-gray-500">Correct answer rate</p>
               </div>
             </div>
           </div>
@@ -238,10 +198,26 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
                 <div className="w-6 h-6 text-yellow-600">⭐</div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total XP</p>
+                <p className="text-sm font-medium text-gray-600">XP Earned</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {loading ? '...' : dashboardStats.totalXP}
+                  {loading ? '...' : userStats.xpEarned}
                 </p>
+                <p className="text-xs text-gray-500">Total experience points</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6 border">
+            <div className="flex items-center">
+              <div className="p-3 bg-purple-100 rounded-full">
+                <div className="w-6 h-6 text-purple-600">🎯</div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Quizzes Completed</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {loading ? '...' : userStats.quizzesCompleted}
+                </p>
+                <p className="text-xs text-gray-500">Quiz sessions finished</p>
               </div>
             </div>
           </div>

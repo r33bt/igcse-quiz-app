@@ -1674,3 +1674,200 @@ Development Time: ~3 hours (including debugging and optimization)
 Final Status: ✅ Complete Success - Full Review Functionality Operational
 
 This README documents the successful implementation of comprehensive session review functionality, transforming basic quiz completion into a detailed learning and analysis tool for students.
+
+///
+
+README Update Log Entry First
+Date: August 21, 2025, 13:30 UTC
+Session Focus: Dashboard Statistics Alignment & Enhanced SessionReview
+
+✅ Completed Enhancements
+Fixed Dashboard Statistics: Replaced stale userProgress props with real-time database queries from quiz_sessions and quiz_attempts tables
+Enhanced SessionReview Component: Added complete question display with answer options, correct answers highlighted, user answers marked, and detailed explanations
+Resolved Build Issues: Fixed TypeScript errors and ESLint warnings preventing deployment
+Data Alignment: Dashboard now uses same successful query patterns as Quiz History
+🔍 Current Data Discrepancy Analysis
+Dashboard vs Quiz History Differences:
+
+Total Questions: Dashboard shows 140 vs Quiz History shows 70
+Accuracy: Dashboard shows 31% vs Quiz History shows 31% ✅ (matches)
+Total XP: Dashboard shows 1140 vs Quiz History shows 1140 ✅ (matches)
+
+///
+
+IGCSE Quiz App - Strategic Assessment & Implementation Plan
+Date: August 21, 2025, 14:45 UTC
+Session Focus: Database Schema Assessment & IGCSE 0580 Alignment Strategy
+
+🔍 Critical Assessment Completed
+Current Database State Analysis
+✅ Solid Foundation Exists:
+
+Question interface with proper structure (question_text, options, correct_answer, explanation)
+Working quiz session and attempt tracking
+User progress tracking system
+Difficulty levels (numeric 1-3)
+❌ IGCSE Alignment Issues Identified:
+
+Questions are placeholder/dummy data (not aligned with official syllabus)
+topic: string | null - lacks official IGCSE topic structure
+difficulty_level: number - needs conversion to user-friendly labels
+Missing Core vs Extended paper classification
+No subtopic granularity for detailed progress tracking
+Data Inconsistency Root Cause Found
+Dashboard "140" vs Quiz History "70" Mystery Solved:
+
+Dashboard: attempts.length = 140 (total question attempts including retakes)
+Quiz History: 70 = unique questions attempted
+Solution: Clear labeling to distinguish between metrics
+📋 Official IGCSE Extended Mathematics 0580 Structure
+9 Core Topic Areas (from official Cambridge syllabus):
+Number - Types, sets, powers, fractions, percentages, ratio, etc.
+Algebra and graphs - Manipulation, equations, sequences, functions, differentiation
+Coordinate geometry - Linear graphs, gradients, parallel/perpendicular lines
+Geometry - Terms, constructions, similarity, angles, circle theorems
+Mensuration - Area, perimeter, volume, surface area of all shapes
+Trigonometry - Pythagoras, right-angled triangles, sine/cosine rules, 3D
+Transformations and vectors - Reflections, rotations, vector calculations
+Probability - Basic probability, combined events, conditional probability
+Statistics - Data analysis, averages, charts, scatter diagrams, histograms
+Subtopic Breakdown (66 total subtopics):
+Each main topic contains 4-18 detailed subtopics (e.g., Number has 18 subtopics from E1.1 to E1.18)
+
+🎯 Strategic Implementation Plan
+Phase 1: Immediate Fixes (30 minutes)
+Goal: Resolve data inconsistency and labeling confusion
+
+1.1 Dashboard Label Clarification:
+
+❌ "Total Questions: 140" (confusing)
+✅ "Questions Answered: 70" (unique questions attempted)
+✅ "Question Attempts: 140" (total including retakes)
+✅ "Quizzes Completed: 14" (quiz sessions)
+✅ "Answer Accuracy: 31%" (percentage correct)
+✅ "XP Earned: 1140" (total experience points)
+1.2 Centralized Data Service:
+
+Create DashboardDataService class
+Consistent calculations across all components
+Single source of truth for metrics
+Phase 2: IGCSE Foundation (45 minutes)
+Goal: Build proper IGCSE 0580 structure without breaking existing functionality
+
+2.1 Enhanced Type System:
+
+Copyinterface IGCSETopic {
+  id: string
+  name: string          // "1. Number"
+  code: string          // "E1"  
+  subtopics: IGCSESubtopic[]
+}
+
+interface IGCSESubtopic {
+  id: string
+  topic_id: string
+  name: string          // "Types of number"
+  code: string          // "E1.1"
+  learning_objectives: string[]
+}
+2.2 Backward-Compatible Question Enhancement:
+
+Copyinterface Question {
+  // ... existing fields ...
+  igcse_topic_id?: string
+  igcse_subtopic_id?: string  
+  paper_type?: 'Core' | 'Extended' | 'Both'
+  difficulty_label?: 'Easy' | 'Medium' | 'Hard'
+}
+Phase 3: Dashboard Restructure (60 minutes)
+Goal: Create comprehensive IGCSE-aligned dashboard
+
+3.1 New Dashboard Sections:
+
+User Progress Overview - Current stats with clear labels
+IGCSE 0580 Syllabus Coverage - 9 topics with progress bars
+Recent Activity Summary - Complementary to Quiz History
+Topic Recommendations - AI-powered suggestions (future)
+3.2 Freemium Strategy Implementation:
+
+Free Tier: Basic progress, essential history, limited usage
+Premium Upsell: Detailed analytics, unlimited usage, AI recommendations
+🔧 Implementation Commands
+Step 1: Immediate Dashboard Label Fix
+Copy# Create centralized data service
+@'
+export class DashboardDataService {
+  private supabase = createClient()
+
+  async getUserProgress(userId: string) {
+    // Get quiz sessions and attempts
+    const [sessions, attempts] = await Promise.all([
+      this.supabase.from('quiz_sessions').select('*').eq('user_id', userId),
+      this.supabase.from('quiz_attempts').select('*').eq('user_id', userId)
+    ])
+
+    // Calculate consistent metrics
+    const uniqueQuestions = [...new Set(attempts.data?.map(a => a.question_id) || [])]
+    const totalCorrect = attempts.data?.filter(a => a.is_correct).length || 0
+    const totalXP = sessions.data?.reduce((sum, s) => sum + (s.total_xp_earned || 0), 0) || 0
+    const accuracy = attempts.data?.length ? Math.round((totalCorrect / attempts.data.length) * 100) : 0
+
+    return {
+      questionsAnswered: uniqueQuestions.length,    // Unique questions attempted
+      questionAttempts: attempts.data?.length || 0,  // Total attempts including retakes
+      quizzesCompleted: sessions.data?.length || 0,  // Quiz sessions finished  
+      answerAccuracy: accuracy,                      // Percentage correct
+      xpEarned: totalXP                             // Total experience points
+    }
+  }
+}
+'@ | Set-Content "src\lib\services\DashboardDataService.ts" -Encoding UTF8
+Step 2: Update Dashboard Component
+Copy# Update Dashboard to use centralized service and clear labels
+# Replace the dashboard stats section with clear labeling
+@'
+import { DashboardDataService } from '@/lib/services/DashboardDataService'
+
+// In Dashboard component, replace stats loading with:
+const dashboardService = new DashboardDataService()
+const userProgress = await dashboardService.getUserProgress(user.id)
+
+// Update stats display with clear labels:
+<div className="text-sm font-medium text-gray-600">Questions Answered</div>
+<div className="text-2xl font-bold text-gray-900">{userProgress.questionsAnswered}</div>
+
+<div className="text-sm font-medium text-gray-600">Answer Accuracy</div>  
+<div className="text-2xl font-bold text-gray-900">{userProgress.answerAccuracy}%</div>
+
+<div className="text-sm font-medium text-gray-600">XP Earned</div>
+<div className="text-2xl font-bold text-gray-900">{userProgress.xpEarned}</div>
+
+<div className="text-sm font-medium text-gray-600">Quizzes Completed</div>
+<div className="text-2xl font-bold text-gray-900">{userProgress.quizzesCompleted}</div>
+'@ | Set-Content "dashboard_update_snippet.txt" -Encoding UTF8
+Step 3: Test and Commit
+Copy# Test the changes locally
+npm run dev
+
+# If tests pass, commit the changes
+git add .
+git commit -m "feat: implement centralized data service and fix dashboard metric labeling - Questions Answered vs Question Attempts clarification"
+git push
+🎯 Success Metrics
+Immediate Goals:
+
+✅ Resolve "140 vs 70" confusion with clear labeling
+✅ Consistent data calculations across components
+✅ Foundation for IGCSE structure implementation
+Next Phase Goals:
+
+📊 IGCSE 0580 syllabus coverage dashboard
+🎯 Topic-specific progress tracking
+🚀 Enhanced user experience with proper categorization
+📚 Key References
+Official Syllabus: Cambridge IGCSE Mathematics 0580 2025-2027
+Current Database Schema: Analyzed in src/lib/types.ts
+Data Service Pattern: Centralized calculations for consistency
+Next Steps: Execute Phase 1 implementation commands, then proceed to IGCSE topic structure development in subsequent session.
+
+Session Status: ✅ Assessment Complete | 🎯 Implementation Ready | 📋 Plan Documented
