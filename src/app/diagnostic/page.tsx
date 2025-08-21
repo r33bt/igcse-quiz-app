@@ -1,27 +1,63 @@
-﻿'use client'
+﻿Copy# Fix all ESLint errors in the diagnostic page
+@'
+'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { DashboardDataService } from '@/lib/services/DashboardDataService'
 import { QuizSessionManager } from '@/lib/quiz-sessions'
+import { User } from '@supabase/supabase-js'
+
+interface QuizSession {
+  id: string
+  user_id: string
+  total_questions: number
+  correct_answers: number
+  accuracy_percentage: number
+  total_xp_earned: number
+  completed_at: string
+}
+
+interface QuizAttempt {
+  id: string
+  user_id: string
+  question_id: string
+  quiz_session_id: string
+  is_correct: boolean
+}
+
+interface Question {
+  id: string
+  question_text: string
+}
+
+interface DashboardStats {
+  questionsAnswered: number
+  questionAttempts: number
+  quizzesCompleted: number
+  answerAccuracy: number
+  xpEarned: number
+}
+
+interface SessionStats {
+  totalQuizzes: number
+  totalQuestions: number
+  totalCorrect: number
+  averageAccuracy: number
+  totalXP: number
+}
 
 interface DiagnosticData {
-  // Database Raw Data
   totalQuestionsInDB: number
   questionIds: string[]
-  userSessions: any[]
-  userAttempts: any[]
-  
-  // Service Calculations
-  dashboardServiceStats: any
-  quizSessionManagerStats: any
-  
-  // Derived Metrics
+  userSessions: QuizSession[]
+  userAttempts: QuizAttempt[]
+  dashboardServiceStats: DashboardStats
+  quizSessionManagerStats: SessionStats
   uniqueQuestionsAttempted: number
   uniqueQuestionIds: string[]
   totalAttemptCount: number
-  
-  // Consistency Checks
   consistencyChecks: {
     dashboardVsHistory: boolean
     calculationMatches: boolean
@@ -33,7 +69,7 @@ export default function ComprehensiveDiagnostic() {
   const [data, setData] = useState<DiagnosticData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
     async function loadComprehensiveData() {
@@ -55,11 +91,10 @@ export default function ComprehensiveDiagnostic() {
         // 1. RAW DATABASE DATA
         console.log('🔍 Fetching raw database data...')
         
-        const [questionsResult, sessionsResult, attemptsResult, profileResult] = await Promise.all([
+        const [questionsResult, sessionsResult, attemptsResult] = await Promise.all([
           supabase.from('questions').select('*'),
           supabase.from('quiz_sessions').select('*').eq('user_id', user.id),
-          supabase.from('quiz_attempts').select('*').eq('user_id', user.id),
-          supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
+          supabase.from('quiz_attempts').select('*').eq('user_id', user.id)
         ])
 
         // 2. SERVICE CALCULATIONS
@@ -207,7 +242,7 @@ export default function ComprehensiveDiagnostic() {
                 </div>
               </div>
               <div className="text-xs text-gray-500 p-2 bg-yellow-50 rounded">
-                💡 <strong>Source:</strong> Direct query from 'questions' table<br/>
+                💡 <strong>Source:</strong> Direct query from &apos;questions&apos; table<br/>
                 📍 <strong>Used by:</strong> Quiz generation, question selection logic
               </div>
             </div>
@@ -236,7 +271,7 @@ export default function ComprehensiveDiagnostic() {
                 <span className="text-xl font-bold text-purple-600">{data.uniqueQuestionsAttempted}</span>
               </div>
               <div className="p-3 bg-gray-50 rounded">
-                <div className="font-medium mb-2">Question IDs You've Attempted:</div>
+                <div className="font-medium mb-2">Question IDs You&apos;ve Attempted:</div>
                 <div className="text-sm font-mono bg-white p-2 rounded border max-h-32 overflow-y-auto">
                   {data.uniqueQuestionIds.join(', ') || 'None'}
                 </div>
@@ -292,7 +327,7 @@ export default function ComprehensiveDiagnostic() {
                 </div>
               </div>
               <div className="mt-3 p-2 bg-blue-50 rounded text-xs">
-                <strong>Logic:</strong> uniqueQuestions = [...new Set(attempts.map(a {'=>'}  a.question_id))]<br/>
+                <strong>Logic:</strong> {`uniqueQuestions = [...new Set(attempts.map(a => a.question_id))]`}<br/>
                 <strong>Used by:</strong> Dashboard.tsx, QuizHistory.tsx (new)
               </div>
             </div>
@@ -328,7 +363,7 @@ export default function ComprehensiveDiagnostic() {
                 </div>
               </div>
               <div className="mt-3 p-2 bg-green-50 rounded text-xs">
-                <strong>Logic:</strong> sessions.reduce((sum, s) {'=>'}  sum + s.total_questions)<br/>
+                <strong>Logic:</strong> {`sessions.reduce((sum, s) => sum + s.total_questions)`}<br/>
                 <strong>Used by:</strong> QuizHistory.tsx (original)
               </div>
             </div>
@@ -427,8 +462,8 @@ export default function ComprehensiveDiagnostic() {
         <div className="text-center text-gray-500 text-sm py-4 border-t">
           <p>🔧 IGCSE Quiz App Diagnostic Dashboard | Generated at {new Date().toISOString()}</p>
           <p className="mt-1">
-            <a href="/" className="text-blue-600 hover:underline">← Back to Dashboard</a> | 
-            <a href="/history" className="text-blue-600 hover:underline ml-2">View Quiz History</a>
+            <Link href="/" className="text-blue-600 hover:underline">← Back to Dashboard</Link> | 
+            <Link href="/history" className="text-blue-600 hover:underline ml-2">View Quiz History</Link>
           </p>
         </div>
       </div>
