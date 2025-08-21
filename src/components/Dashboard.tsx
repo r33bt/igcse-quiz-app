@@ -39,7 +39,7 @@ interface DashboardStats {
   totalQuizzes: number
 }
 
-export default function Dashboard({ user, profile, subjects, userProgress }: DashboardProps) {
+export default function Dashboard({ user, profile, subjects }: DashboardProps) {
   const [recentActivity, setRecentActivity] = useState<ActivityGroup[]>([])
   const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
     totalQuestions: 0,
@@ -55,7 +55,6 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
 
   // Ensure arrays are never null/undefined with comprehensive type checking
   const safeSubjects = Array.isArray(subjects) ? subjects : []
-  const safeUserProgress = Array.isArray(userProgress) ? userProgress : []
 
   // Load dashboard statistics from actual quiz data
   const loadDashboardStats = useCallback(async () => {
@@ -190,7 +189,7 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
         </div>
 
         {/* Stats Cards - Using Real Data */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm p-6 border">
             <div className="flex items-center">
               <div className="p-3 bg-blue-100 rounded-full">
@@ -233,7 +232,6 @@ export default function Dashboard({ user, profile, subjects, userProgress }: Das
             </div>
           </div>
 
-          {/* Additional XP Card */}
           <div className="bg-white rounded-xl shadow-sm p-6 border">
             <div className="flex items-center">
               <div className="p-3 bg-yellow-100 rounded-full">

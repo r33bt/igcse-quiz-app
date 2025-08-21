@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { User } from '@supabase/supabase-js'
 import { QuizSessionManager } from '@/lib/quiz-sessions'
 import { QuizSession, QuizAttempt, Question } from '@/lib/types'
+import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 type EnhancedAttempt = QuizAttempt & {
@@ -30,6 +31,7 @@ export default function SessionReview({ user, sessionId }: SessionReviewProps) {
 
   const router = useRouter()
   const sessionManager = useMemo(() => new QuizSessionManager(), [])
+  const supabase = createClient()
 
   const loadSessionReview = useCallback(async (): Promise<void> => {
     try {
@@ -53,7 +55,7 @@ export default function SessionReview({ user, sessionId }: SessionReviewProps) {
       const attemptsWithQuestions = await Promise.all(
         (reviewData.attempts || []).map(async (attempt) => {
           try {
-            const { data: questionData } = await sessionManager.supabase
+            const { data: questionData } = await supabase
               .from('questions')
               .select('*')
               .eq('id', attempt.question_id)
@@ -81,7 +83,7 @@ export default function SessionReview({ user, sessionId }: SessionReviewProps) {
     } finally {
       setLoading(false)
     }
-  }, [sessionId, sessionManager, user.id])
+  }, [sessionId, sessionManager, user.id, supabase])
 
   useEffect(() => {
     loadSessionReview()
