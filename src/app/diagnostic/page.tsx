@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { DashboardDataService } from '@/lib/services/DashboardDataService'
 
 export default function DiagnosticPage() {
-  const [data, setData] = useState<any>(null) // eslint-disable-line @typescript-eslint/no-explicit-any
+  const [data, setData] = useState<Record<string, any> | null>(null) // eslint-disable-line @typescript-eslint/no-explicit-any
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -94,3 +94,4 @@ export default function DiagnosticPage() {
     </div>
   )
 }
+
