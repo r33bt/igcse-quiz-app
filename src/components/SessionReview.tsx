@@ -198,7 +198,7 @@ export default function SessionReview({ user, sessionId }: Omit<SessionReviewPro
                           {attempt.is_correct ? 'Correct' : 'Incorrect'}
                         </span>
                         <div className="text-sm text-gray-600">
-                          {attempt.questions.topic || 'General'} • Level {attempt.questions.difficulty_level}
+                          {'General'} • Level {attempt.questions.difficulty_level || 1}
                         </div>
                       </div>
                     </div>
@@ -280,3 +280,4 @@ export default function SessionReview({ user, sessionId }: Omit<SessionReviewPro
     </div>
   )
 }
+
