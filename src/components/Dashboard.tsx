@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
 import { Profile, Subject, UserProgress } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
-import { DashboardDataService } from '@/lib/services/DashboardDataService'
 import { useRouter } from 'next/navigation'
 import AppNavigation from '@/components/AppNavigation'
 
@@ -32,7 +31,7 @@ interface ActivityGroup {
   }[]
 }
 
-interface UserProgressStats {
+interface DashboardStats {
   questionsAnswered: number
   questionAttempts: number
   quizzesCompleted: number
@@ -42,7 +41,7 @@ interface UserProgressStats {
 
 export default function Dashboard({ user, profile, subjects }: DashboardProps) {
   const [recentActivity, setRecentActivity] = useState<ActivityGroup[]>([])
-  const [userStats, setUserStats] = useState<UserProgressStats>({
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
     questionsAnswered: 0,
     questionAttempts: 0,
     quizzesCompleted: 0,
@@ -53,20 +52,69 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
   
   const router = useRouter()
   const supabase = createClient()
-  const dashboardService = new DashboardDataService()
 
   // Ensure arrays are never null/undefined
   const safeSubjects = Array.isArray(subjects) ? subjects : []
 
-  // Load user statistics using centralized service
-  const loadUserStats = useCallback(async () => {
+  // Load dashboard statistics - FIXED VERSION with direct queries
+  const loadDashboardStats = useCallback(async () => {
     try {
-      const stats = await dashboardService.getUserProgress(user.id)
-      setUserStats(stats)
+      console.log('Loading dashboard stats for user:', user.id)
+      
+      // Get quiz sessions for total quizzes and XP
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('quiz_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+
+      if (sessionsError) {
+        console.error('Sessions error:', sessionsError)
+        return
+      }
+
+      // Get quiz attempts for accuracy and question count  
+      const { data: attempts, error: attemptsError } = await supabase
+        .from('quiz_attempts')
+        .select('*')
+        .eq('user_id', user.id)
+
+      if (attemptsError) {
+        console.error('Attempts error:', attemptsError)
+        return
+      }
+
+      console.log('Sessions data:', sessions?.length)
+      console.log('Attempts data:', attempts?.length)
+
+      if (sessions && attempts) {
+        // Calculate unique questions answered
+        const uniqueQuestions = [...new Set(attempts.map(a => a.question_id))]
+        const totalQuizzes = sessions.length
+        const totalAttempts = attempts.length
+        const correctAnswers = attempts.filter(a => a.is_correct).length
+        const totalAccuracy = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0
+        const totalXP = sessions.reduce((sum, session) => sum + (session.total_xp_earned || 0), 0)
+
+        console.log('Calculated stats:', {
+          questionsAnswered: uniqueQuestions.length,
+          questionAttempts: totalAttempts,
+          quizzesCompleted: totalQuizzes,
+          answerAccuracy: totalAccuracy,
+          xpEarned: totalXP
+        })
+
+        setDashboardStats({
+          questionsAnswered: uniqueQuestions.length,
+          questionAttempts: totalAttempts,
+          quizzesCompleted: totalQuizzes,
+          answerAccuracy: totalAccuracy,
+          xpEarned: totalXP
+        })
+      }
     } catch (error) {
-      console.error('Error loading user stats:', error)
+      console.error('Error loading dashboard stats:', error)
     }
-  }, [user.id, dashboardService])
+  }, [user.id, supabase])
 
   // Load recent quiz activity
   const loadRecentActivity = useCallback(async () => {
@@ -111,12 +159,12 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
       setLoading(true)
       await Promise.all([
         loadRecentActivity(),
-        loadUserStats()
+        loadDashboardStats()
       ])
       setLoading(false)
     }
     loadData()
-  }, [loadRecentActivity, loadUserStats])
+  }, [loadRecentActivity, loadDashboardStats])
 
   const startQuiz = (subjectId: string) => {
     const mathSubject = safeSubjects.find(s => s.name === 'Mathematics')
@@ -158,9 +206,17 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
               </div>
             </div>
           </div>
+
+          {/* Debug Info - Shows in development mode */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 text-sm">
+              <strong>Debug:</strong> Questions: {dashboardStats.questionsAnswered}, Attempts: {dashboardStats.questionAttempts}, 
+              Quizzes: {dashboardStats.quizzesCompleted}, Accuracy: {dashboardStats.answerAccuracy}%, XP: {dashboardStats.xpEarned}
+            </div>
+          )}
         </div>
 
-        {/* Stats Cards - Clear Labels */}
+        {/* Stats Cards - Fixed Labels */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm p-6 border">
             <div className="flex items-center">
@@ -170,7 +226,7 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Questions Answered</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {loading ? '...' : userStats.questionsAnswered}
+                  {loading ? '...' : dashboardStats.questionsAnswered}
                 </p>
                 <p className="text-xs text-gray-500">Unique questions attempted</p>
               </div>
@@ -185,7 +241,7 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Answer Accuracy</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {loading ? '...' : `${userStats.answerAccuracy}%`}
+                  {loading ? '...' : `${dashboardStats.answerAccuracy}%`}
                 </p>
                 <p className="text-xs text-gray-500">Correct answer rate</p>
               </div>
@@ -200,7 +256,7 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">XP Earned</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {loading ? '...' : userStats.xpEarned}
+                  {loading ? '...' : dashboardStats.xpEarned}
                 </p>
                 <p className="text-xs text-gray-500">Total experience points</p>
               </div>
@@ -215,7 +271,7 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Quizzes Completed</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {loading ? '...' : userStats.quizzesCompleted}
+                  {loading ? '...' : dashboardStats.quizzesCompleted}
                 </p>
                 <p className="text-xs text-gray-500">Quiz sessions finished</p>
               </div>
@@ -298,10 +354,10 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
                           </div>
                           <div>
                             <p className="text-sm font-medium text-gray-900">
-                              {attempt.questions?.question_text?.substring(0, 50) || 'Mathematics Question'}...
+                              Mathematics Question
                             </p>
                             <p className="text-xs text-gray-500">
-                              {attempt.questions?.subjects?.name || 'Mathematics'}
+                              Mathematics
                             </p>
                           </div>
                         </div>
