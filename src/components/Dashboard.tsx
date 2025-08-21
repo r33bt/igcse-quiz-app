@@ -6,6 +6,7 @@ import { Profile, Subject, UserProgress } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import AppNavigation from '@/components/AppNavigation'
+import { DashboardDataService } from '@/lib/services/DashboardDataService'
 
 interface DashboardProps {
   user: User
@@ -56,57 +57,20 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
   // Ensure arrays are never null/undefined
   const safeSubjects = Array.isArray(subjects) ? subjects : []
 
-  // Load dashboard statistics
+  // Load dashboard statistics using centralized service
   const loadDashboardStats = useCallback(async () => {
     try {
-      // Get quiz sessions for total quizzes and XP
-      const { data: sessions, error: sessionsError } = await supabase
-        .from('quiz_sessions')
-        .select('*')
-        .eq('user_id', user.id)
-
-      if (sessionsError) {
-        console.error('Sessions error:', sessionsError)
-        return
-      }
-
-      // Get quiz attempts for accuracy and question count
-      const { data: attempts, error: attemptsError } = await supabase
-        .from('quiz_attempts')
-        .select('*')
-        .eq('user_id', user.id)
-
-      if (attemptsError) {
-        console.error('Attempts error:', attemptsError)
-        return
-      }
-
-      if (sessions && attempts) {
-        const totalQuizzes = sessions.length
-        const uniqueQuestions = [...new Set(attempts.map(a => a.question_id))]
-        const questionsAnswered = uniqueQuestions.length
-        const questionAttempts = attempts.length
-        const correctAnswers = attempts.filter(a => a.is_correct).length
-        const answerAccuracy = questionAttempts > 0 ? Math.round((correctAnswers / questionAttempts) * 100) : 0
-        const totalXP = sessions.reduce((sum, session) => sum + (session.total_xp_earned || 0), 0)
-
-        setDashboardStats({
-          questionsAnswered,
-          questionAttempts,
-          answerAccuracy,
-          quizzesCompleted: totalQuizzes,
-          xpEarned: totalXP
-        })
-      }
+      const dashboardService = new DashboardDataService()
+      const stats = await dashboardService.getUserProgress(user.id)
+      setDashboardStats(stats)
     } catch (error) {
       console.error('Error loading dashboard stats:', error)
     }
-  }, [user.id, supabase])
+  }, [user.id])
 
   // Load recent quiz activity
   const loadRecentActivity = useCallback(async () => {
     try {
-      // Get recent quiz attempts with question and subject info
       const { data: attempts, error } = await supabase
         .from('quiz_attempts')
         .select('*')
