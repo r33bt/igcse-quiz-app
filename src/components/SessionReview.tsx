@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { User } from '@supabase/supabase-js'
-import { Profile, QuizSession, QuizAttempt, Question } from '@/lib/types'
+import { Profile, QuizSession, QuizAttempt } from '@/lib/types'
 import { QuizSessionManager } from '@/lib/quiz-sessions'
 import { useRouter } from 'next/navigation'
 
@@ -14,7 +14,7 @@ interface SessionReviewProps {
 
 export default function SessionReview({ user, sessionId }: Omit<SessionReviewProps, 'profile'>) {
   const [session, setSession] = useState<QuizSession | null>(null)
-  const [attempts, setAttempts] = useState<(QuizAttempt & { questions: Question })[]>([])
+  const [attempts, setAttempts] = useState<QuizAttempt[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -26,15 +26,13 @@ export default function SessionReview({ user, sessionId }: Omit<SessionReviewPro
       setLoading(true)
       setError(null)
 
-      // Get session details
       const reviewData = await sessionManager.getSessionReview(sessionId)
-      
+
       if (!reviewData.session) {
         setError('Quiz session not found')
         return
       }
 
-      // Check if this session belongs to the current user
       if (reviewData.session.user_id !== user.id) {
         setError('Access denied - this quiz session does not belong to you')
         return
@@ -54,7 +52,6 @@ export default function SessionReview({ user, sessionId }: Omit<SessionReviewPro
   useEffect(() => {
     loadSessionReview()
   }, [loadSessionReview])
-
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -108,36 +105,10 @@ export default function SessionReview({ user, sessionId }: Omit<SessionReviewPro
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => router.push('/history')}
-                className="text-gray-600 hover:text-gray-900 font-medium"
-              >
-                ← Back to History
-              </button>
-              <div className="flex items-center">
-                <div 
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold mr-3"
-                  style={{ backgroundColor: session.subjects?.color || '#3B82F6' }}
-                >
-                  {session.subjects?.name?.charAt(0) || 'Q'}
-                </div>
-                <h1 className="text-xl font-bold text-gray-900">
-                  {session.subjects?.name || 'Quiz'} Review
-                </h1>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Session Summary */}
         <div className="bg-white rounded-xl shadow-sm border p-6 mb-8">
+          <h1 className="text-2xl font-bold text-gray-900 mb-6">Quiz Session Review</h1>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
             <div className="text-center">
               <div className="text-2xl font-bold text-gray-900">
@@ -147,7 +118,7 @@ export default function SessionReview({ user, sessionId }: Omit<SessionReviewPro
             </div>
             <div className="text-center">
               <div className={`text-2xl font-bold ${
-                session.accuracy_percentage >= 80 ? 'text-green-600' : 
+                session.accuracy_percentage >= 80 ? 'text-green-600' :
                 session.accuracy_percentage >= 60 ? 'text-yellow-600' : 'text-red-600'
               }`}>
                 {Math.round(session.accuracy_percentage)}%
@@ -171,17 +142,15 @@ export default function SessionReview({ user, sessionId }: Omit<SessionReviewPro
           </div>
         </div>
 
-        {/* Questions Review */}
-        <div className="space-y-6">
+        {/* Attempts Summary */}
+        <div className="bg-white rounded-xl shadow-sm border p-6 mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Question Attempts</h2>
           {attempts.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-sm border p-8 text-center">
-              <p className="text-gray-600">No question attempts found for this session.</p>
-            </div>
+            <p className="text-gray-600">No question attempts found for this session.</p>
           ) : (
-            attempts.map((attempt, index) => (
-              <div key={attempt.id} className="bg-white rounded-xl shadow-sm border">
-                {/* Question Header */}
-                <div className={`p-4 border-b ${
+            <div className="space-y-4">
+              {attempts.map((attempt, index) => (
+                <div key={attempt.id} className={`p-4 rounded-lg border-2 ${
                   attempt.is_correct ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
                 }`}>
                   <div className="flex items-center justify-between">
@@ -198,7 +167,7 @@ export default function SessionReview({ user, sessionId }: Omit<SessionReviewPro
                           {attempt.is_correct ? 'Correct' : 'Incorrect'}
                         </span>
                         <div className="text-sm text-gray-600">
-                          {'General'} • Level {1}
+                          General • Level {attempt.difficulty_at_time || 1}
                         </div>
                       </div>
                     </div>
@@ -211,58 +180,19 @@ export default function SessionReview({ user, sessionId }: Omit<SessionReviewPro
                       </span>
                     </div>
                   </div>
-                </div>
-
-                {/* Question Content */}
-                <div className="p-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">
-                    {attempt.questions.question_text}
-                  </h3>
-
-                  {/* Answer Options */}
-                  <div className="space-y-2 mb-6">
-                    {Array.isArray(attempt.questions.options) && attempt.questions.options.map((option, optionIndex) => (
-                      <div
-                        key={optionIndex}
-                        className={`p-3 rounded-lg border-2 ${
-                          option === attempt.questions.correct_answer
-                            ? 'bg-green-50 border-green-500 text-green-700'
-                            : option === attempt.user_answer && option !== attempt.questions.correct_answer
-                            ? 'bg-red-50 border-red-500 text-red-700'
-                            : 'bg-gray-50 border-gray-200 text-gray-700'
-                        }`}
-                      >
-                        <div className="flex items-center">
-                          <span className="w-6 h-6 rounded-full border-2 border-current flex items-center justify-center mr-3 text-xs font-bold">
-                            {String.fromCharCode(65 + optionIndex)}
-                          </span>
-                          <span>{option}</span>
-                          {option === attempt.questions.correct_answer && (
-                            <span className="ml-auto text-green-600 font-medium">✓ Correct</span>
-                          )}
-                          {option === attempt.user_answer && option !== attempt.questions.correct_answer && (
-                            <span className="ml-auto text-red-600 font-medium">✗ Your Answer</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Explanation */}
-                  {attempt.questions.explanation && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <h4 className="font-medium text-blue-900 mb-2">Explanation</h4>
-                      <p className="text-blue-800 text-sm">{attempt.questions.explanation}</p>
+                  {attempt.user_answer && (
+                    <div className="mt-2 text-sm text-gray-600">
+                      Your answer: <span className="font-medium">{attempt.user_answer}</span>
                     </div>
                   )}
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
 
         {/* Actions */}
-        <div className="mt-8 text-center space-x-4">
+        <div className="text-center space-x-4">
           <button
             onClick={() => router.push('/history')}
             className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium"
@@ -270,15 +200,13 @@ export default function SessionReview({ user, sessionId }: Omit<SessionReviewPro
             Back to History
           </button>
           <button
-            onClick={() => router.push(`/quiz/${session.subject_id}`)}
+            onClick={() => router.push('/mathematics')}
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium"
           >
-            Retake Quiz
+            Take Another Quiz
           </button>
         </div>
       </div>
     </div>
   )
 }
-
-
