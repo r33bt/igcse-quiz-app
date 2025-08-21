@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { User } from '@supabase/supabase-js'
 import { Profile, QuizSession } from '@/lib/types'
 import { QuizSessionManager } from '@/lib/quiz-sessions'
+import { DashboardDataService } from '@/lib/services/DashboardDataService'
 import { useRouter } from 'next/navigation'
 
 interface QuizHistoryProps {
@@ -17,37 +18,44 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
   const [error, setError] = useState<string | null>(null)
   const [stats, setStats] = useState({
     totalQuizzes: 0,
-    totalQuestions: 0,
+    questionsAnswered: 0,
     totalCorrect: 0,
     averageAccuracy: 0,
     totalXP: 0,
-    recentStreakDays: 0
+    recentStreakDays: 1
   })
   const [filterSubject, setFilterSubject] = useState<string>('all')
   const [filterAccuracy, setFilterAccuracy] = useState<string>('all')
-  const [topicAnalysis, setTopicAnalysis] = useState<{[key: string]: {correct: number, total: number, accuracy: number}}>({}) 
+  const [topicAnalysis, setTopicAnalysis] = useState<{[key: string]: {correct: number, total: number, accuracy: number}}>({})
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set())
 
   const router = useRouter()
   const sessionManager = useMemo(() => new QuizSessionManager(), [])
+  const dashboardService = useMemo(() => new DashboardDataService(), [])
 
   const loadQuizHistory = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
 
-      // Load quiz sessions
+      // Load quiz sessions (keep existing logic)
       const sessions = await sessionManager.getUserQuizHistory(user.id)
       setQuizSessions(sessions)
 
-      // Load stats
-      const userStats = await sessionManager.getUserQuizStats(user.id)
-      setStats(userStats)
+      // Use DashboardDataService for consistent stats calculation
+      const dashboardStats = await dashboardService.getUserProgress(user.id)
+      setStats({
+        totalQuizzes: dashboardStats.quizzesCompleted,
+        questionsAnswered: dashboardStats.questionsAnswered,  // This will now show 5 like Dashboard
+        totalCorrect: Math.round((dashboardStats.answerAccuracy / 100) * dashboardStats.questionAttempts),
+        averageAccuracy: dashboardStats.answerAccuracy,
+        totalXP: dashboardStats.xpEarned,
+        recentStreakDays: 1
+      })
 
-      // Calculate topic analysis
+      // Calculate topic analysis (keep existing logic)
       const analysis: {[key: string]: {correct: number, total: number, accuracy: number}} = {}
       sessions.forEach(session => {
-        // Mock topic extraction - in real app you'd get this from quiz attempts
         const topic = session.subjects?.name || 'General'
         if (!analysis[topic]) {
           analysis[topic] = { correct: 0, total: 0, accuracy: 0 }
@@ -64,12 +72,11 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
     } finally {
       setLoading(false)
     }
-  }, [user.id, sessionManager])
+  }, [user.id, sessionManager, dashboardService])
 
   useEffect(() => {
     loadQuizHistory()
   }, [loadQuizHistory])
-
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -159,14 +166,14 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Statistics Overview */}
+      {/* Statistics Overview - NOW USING SAME SERVICE AS DASHBOARD */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
         <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
           <div className="text-2xl font-bold text-blue-600">{stats.totalQuizzes}</div>
           <div className="text-sm text-gray-600">Total Quizzes</div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
-          <div className="text-2xl font-bold text-green-600">{stats.totalQuestions}</div>
+          <div className="text-2xl font-bold text-green-600">{stats.questionsAnswered}</div>
           <div className="text-sm text-gray-600">Questions Answered</div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
@@ -187,7 +194,8 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
         </div>
       </div>
 
-      {/* Topic Strength Analysis */}
+      {/* Rest of the component stays the same... */}
+      {/* Topic Performance Analysis */}
       {Object.keys(topicAnalysis).length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border mb-8">
           <div className="p-6 border-b">
@@ -211,8 +219,8 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
                       <span className={`font-bold ${strength.color}`}>{data.accuracy}%</span>
                     </div>
                     <div className="mt-2 bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full ${getAccuracyBadgeColor(data.accuracy)}`} 
+                      <div
+                        className={`h-2 rounded-full ${getAccuracyBadgeColor(data.accuracy)}`}
                         style={{ width: `${Math.min(data.accuracy, 100)}%` }}
                       ></div>
                     </div>
@@ -232,10 +240,10 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
               <h2 className="text-xl font-bold text-gray-900">Quiz History</h2>
               <p className="text-gray-600 mt-1">Click on any session to review all questions and answers</p>
             </div>
-            
+
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
-              <select 
+              <select
                 value={filterSubject}
                 onChange={(e) => setFilterSubject(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -245,8 +253,8 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
                   <option key={subject} value={subject}>{subject}</option>
                 ))}
               </select>
-              
-              <select 
+
+              <select
                 value={filterAccuracy}
                 onChange={(e) => setFilterAccuracy(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -276,10 +284,10 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
           <div className="divide-y divide-gray-200">
             {filteredSessions.map((session) => {
               const isExpanded = expandedSessions.has(session.id)
-              const timeTaken = session.completed_at && session.started_at 
+              const timeTaken = session.completed_at && session.started_at
                 ? Math.round((new Date(session.completed_at).getTime() - new Date(session.started_at).getTime()) / (1000 * 60))
                 : null
-              
+
               return (
                 <div key={session.id} className="bg-white">
                   {/* Session Header */}
@@ -287,7 +295,7 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-4">
-                          <div 
+                          <div
                             className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold"
                             style={{ backgroundColor: session.subjects?.color || '#3B82F6' }}
                           >
@@ -310,7 +318,7 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center space-x-6">
                         <div className="text-center">
                           <div className="text-xl font-bold text-gray-900">
@@ -318,14 +326,14 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
                           </div>
                           <div className="text-xs text-gray-500">Score</div>
                         </div>
-                        
+
                         <div className="text-center">
                           <div className="text-xl font-bold text-yellow-600">
                             {session.total_xp_earned}
                           </div>
                           <div className="text-xs text-gray-500">XP</div>
                         </div>
-                        
+
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={(e) => {
@@ -392,7 +400,6 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
                 </div>
               )
             })}
-
             {filteredSessions.length === 0 && quizSessions.length > 0 && (
               <div className="p-8 text-center">
                 <div className="text-gray-400 text-4xl mb-4">🔍</div>
