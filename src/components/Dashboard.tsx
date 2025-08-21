@@ -37,7 +37,6 @@ interface DashboardStats {
   answerAccuracy: number
   quizzesCompleted: number
   xpEarned: number
-  
 }
 
 export default function Dashboard({ user, profile, subjects }: DashboardProps) {
@@ -47,57 +46,62 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
     questionAttempts: 0,
     answerAccuracy: 0,
     quizzesCompleted: 0,
-    xpEarned: totalXP 0,
-    totalQuizzes: 0
+    xpEarned: 0
   })
   const [loading, setLoading] = useState(true)
   
   const router = useRouter()
   const supabase = createClient()
 
-  // Ensure arrays are never null/undefined with comprehensive type checking
+  // Ensure arrays are never null/undefined
   const safeSubjects = Array.isArray(subjects) ? subjects : []
 
-  // Load dashboard statistics from actual quiz data
+  // Load dashboard statistics
   const loadDashboardStats = useCallback(async () => {
     try {
       // Get quiz sessions for total quizzes and XP
-      const { data: sessions } = await supabase
+      const { data: sessions, error: sessionsError } = await supabase
         .from('quiz_sessions')
         .select('*')
         .eq('user_id', user.id)
 
-      // Get quiz attempts for accuracy and question count  
-      const { data: attempts } = await supabase
+      if (sessionsError) {
+        console.error('Sessions error:', sessionsError)
+        return
+      }
+
+      // Get quiz attempts for accuracy and question count
+      const { data: attempts, error: attemptsError } = await supabase
         .from('quiz_attempts')
         .select('*')
         .eq('user_id', user.id)
 
+      if (attemptsError) {
+        console.error('Attempts error:', attemptsError)
+        return
+      }
+
       if (sessions && attempts) {
         const totalQuizzes = sessions.length
-        const uniqueQuestions = [...new Set(attempts.map(a => a.question_id))];
-        const questionsAnswered = uniqueQuestions.length;
+        const uniqueQuestions = [...new Set(attempts.map(a => a.question_id))]
+        const questionsAnswered = uniqueQuestions.length
         const questionAttempts = attempts.length
         const correctAnswers = attempts.filter(a => a.is_correct).length
         const answerAccuracy = questionAttempts > 0 ? Math.round((correctAnswers / questionAttempts) * 100) : 0
         const totalXP = sessions.reduce((sum, session) => sum + (session.total_xp_earned || 0), 0)
-        
-        // Calculate study streak (use profile data or calculate from recent activity)
-        const studyStreak = profile?.study_streak || 0
 
         setDashboardStats({
           questionsAnswered,
-            questionAttempts,
+          questionAttempts,
           answerAccuracy,
-          studyStreak,
-          xpEarned,
-          totalQuizzes
+          quizzesCompleted: totalQuizzes,
+          xpEarned: totalXP
         })
       }
     } catch (error) {
       console.error('Error loading dashboard stats:', error)
     }
-  }, [user.id, supabase, profile])
+  }, [user.id, supabase])
 
   // Load recent quiz activity
   const loadRecentActivity = useCallback(async () => {
@@ -151,7 +155,6 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
   }, [loadRecentActivity, loadDashboardStats])
 
   const startQuiz = (subjectId: string) => {
-    // Check if this is Mathematics - redirect to mathematics hub instead of direct quiz
     const mathSubject = safeSubjects.find(s => s.name === 'Mathematics')
     if (mathSubject && subjectId === mathSubject.id) {
       router.push('/mathematics')
@@ -175,7 +178,7 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
           {/* Quick Start Guide */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <div className="flex items-start space-x-3">
-              <div className="text-blue-500 text-xl">ðŸ’¡</div>
+              <div className="text-blue-500 text-xl">💡</div>
               <div>
                 <h3 className="font-semibold text-blue-900 mb-1">New to the app?</h3>
                 <p className="text-blue-700 text-sm mb-2">
@@ -186,25 +189,26 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
                   onClick={() => router.push('/guide')}
                   className="text-blue-600 hover:text-blue-700 font-medium text-sm underline"
                 >
-                  Read the complete guide â†’
+                  Read the complete guide →
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Stats Cards - Using Real Data */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm p-6 border">
             <div className="flex items-center">
               <div className="p-3 bg-blue-100 rounded-full">
-                <div className="w-6 h-6 text-blue-600">ðŸ“Š</div>
+                <div className="w-6 h-6 text-blue-600">📝</div>
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Questions Answered</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {loading ? '...' : dashboardStats.questionsAnswered}
                 </p>
+                <p className="text-xs text-gray-500">Unique questions attempted</p>
               </div>
             </div>
           </div>
@@ -212,27 +216,14 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
           <div className="bg-white rounded-xl shadow-sm p-6 border">
             <div className="flex items-center">
               <div className="p-3 bg-green-100 rounded-full">
-                <div className="w-6 h-6 text-green-600">âœ…</div>
+                <div className="w-6 h-6 text-green-600">✅</div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Overall Accuracy</p>
+                <p className="text-sm font-medium text-gray-600">Answer Accuracy</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {loading ? '...' : `${dashboardStats.totalAccuracy}%`}
+                  {loading ? '...' : `${dashboardStats.answerAccuracy}%`}
                 </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6 border">
-            <div className="flex items-center">
-              <div className="p-3 bg-orange-100 rounded-full">
-                <div className="w-6 h-6 text-orange-600">ðŸ”¥</div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Study Streak</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {loading ? '...' : `${dashboardStats.studyStreak} days`}
-                </p>
+                <p className="text-xs text-gray-500">Correct answer rate</p>
               </div>
             </div>
           </div>
@@ -240,13 +231,29 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
           <div className="bg-white rounded-xl shadow-sm p-6 border">
             <div className="flex items-center">
               <div className="p-3 bg-yellow-100 rounded-full">
-                <div className="w-6 h-6 text-yellow-600">â­</div>
+                <div className="w-6 h-6 text-yellow-600">⭐</div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total XP</p>
+                <p className="text-sm font-medium text-gray-600">XP Earned</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {loading ? '...' : dashboardStats.xpEarned}
                 </p>
+                <p className="text-xs text-gray-500">Total experience points</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6 border">
+            <div className="flex items-center">
+              <div className="p-3 bg-purple-100 rounded-full">
+                <div className="w-6 h-6 text-purple-600">🎯</div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Quizzes Completed</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {loading ? '...' : dashboardStats.quizzesCompleted}
+                </p>
+                <p className="text-xs text-gray-500">Quiz sessions finished</p>
               </div>
             </div>
           </div>
@@ -296,7 +303,7 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
               onClick={() => router.push('/history')}
               className="text-blue-600 hover:text-blue-700 font-medium text-sm"
             >
-              View All History â†’
+              View All History →
             </button>
           </div>
           
@@ -307,7 +314,7 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
             </div>
           ) : recentActivity.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm border p-8 text-center">
-              <div className="text-gray-400 text-4xl mb-4">ðŸ“š</div>
+              <div className="text-gray-400 text-4xl mb-4">📚</div>
               <p className="text-gray-600 mb-4">No quiz activity yet</p>
               <p className="text-gray-500 text-sm">Start your first quiz to see your progress here!</p>
             </div>
@@ -323,14 +330,14 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-bold ${
                             attempt.is_correct ? 'bg-green-500' : 'bg-red-500'
                           }`}>
-                            {attempt.is_correct ? 'âœ“' : 'âœ—'}
+                            {attempt.is_correct ? '✓' : '✗'}
                           </div>
                           <div>
                             <p className="text-sm font-medium text-gray-900">
-                              {attempt.questions?.question_text?.substring(0, 50) || 'Mathematics Question'}...
+                              Mathematics Question
                             </p>
                             <p className="text-xs text-gray-500">
-                              {attempt.questions?.subjects?.name || 'Mathematics'}
+                              Mathematics
                             </p>
                           </div>
                         </div>
@@ -352,13 +359,3 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
     </div>
   )
 }
-
-
-
-
-
-
-
-
-
-
