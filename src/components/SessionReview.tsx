@@ -3,12 +3,16 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { User } from '@supabase/supabase-js'
 import { QuizSessionManager } from '@/lib/quiz-sessions'
-import { QuizSession, QuizAttempt } from '@/lib/types'
+import { QuizSession, QuizAttempt, Question } from '@/lib/types'
 import { useRouter } from 'next/navigation'
+
+type EnhancedAttempt = QuizAttempt & {
+  question?: Question
+}
 
 type SessionReviewData = {
   session: QuizSession | null
-  attempts: QuizAttempt[]
+  attempts: EnhancedAttempt[]
 }
 
 interface SessionReviewProps {
@@ -32,6 +36,7 @@ export default function SessionReview({ user, sessionId }: SessionReviewProps) {
       setLoading(true)
       setError(null)
 
+      // Get session and attempts data
       const reviewData = await sessionManager.getSessionReview(sessionId)
 
       if (!reviewData.session) {
@@ -44,9 +49,30 @@ export default function SessionReview({ user, sessionId }: SessionReviewProps) {
         return
       }
 
+      // Fetch complete question details for each attempt
+      const attemptsWithQuestions = await Promise.all(
+        (reviewData.attempts || []).map(async (attempt) => {
+          try {
+            const { data: questionData } = await sessionManager.supabase
+              .from('questions')
+              .select('*')
+              .eq('id', attempt.question_id)
+              .single()
+            
+            return {
+              ...attempt,
+              question: questionData
+            }
+          } catch (err) {
+            console.error('Error fetching question details:', err)
+            return attempt
+          }
+        })
+      )
+
       setSessionData({
         session: reviewData.session as QuizSession,
-        attempts: (reviewData.attempts || []) as QuizAttempt[]
+        attempts: attemptsWithQuestions as EnhancedAttempt[]
       })
 
     } catch (err) {
@@ -82,13 +108,69 @@ export default function SessionReview({ user, sessionId }: SessionReviewProps) {
     return typeof value === 'string' ? value : ''
   }
 
+  const renderQuestionOptions = (question: Question, userAnswer: string | null, isCorrect: boolean) => {
+    if (!question.options || !Array.isArray(question.options)) {
+      return null
+    }
+
+    const options = ['A', 'B', 'C', 'D']
+    
+    return (
+      <div className="mt-4 space-y-3">
+        {question.options.map((option, index) => {
+          const optionLetter = options[index]
+          const isUserAnswer = userAnswer === optionLetter || userAnswer === option
+          const isCorrectAnswer = question.correct_answer === optionLetter || question.correct_answer === option
+          
+          let optionClass = 'p-3 rounded-lg border-2 transition-all duration-200 '
+          
+          if (isCorrectAnswer) {
+            optionClass += 'bg-green-100 border-green-300 text-green-800 '
+          } else if (isUserAnswer && !isCorrect) {
+            optionClass += 'bg-red-100 border-red-300 text-red-800 '
+          } else {
+            optionClass += 'bg-gray-50 border-gray-200 text-gray-700 '
+          }
+
+          return (
+            <div key={index} className={optionClass}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <span className="font-bold text-lg">{optionLetter})</span>
+                  <span className="text-base">{option}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {isCorrectAnswer && (
+                    <span className="bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
+                      ✓ Correct
+                    </span>
+                  )}
+                  {isUserAnswer && !isCorrect && (
+                    <span className="bg-red-500 text-white px-2 py-1 rounded text-xs font-medium">
+                      Your Answer
+                    </span>
+                  )}
+                  {isUserAnswer && isCorrect && (
+                    <span className="bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
+                      ✓ Your Answer
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading quiz review...</p>
+            <p className="mt-4 text-gray-600">Loading detailed quiz review...</p>
           </div>
         </div>
       </div>
@@ -125,7 +207,8 @@ export default function SessionReview({ user, sessionId }: SessionReviewProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
         <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Quiz Session Review</h1>
@@ -149,6 +232,7 @@ export default function SessionReview({ user, sessionId }: SessionReviewProps) {
           </div>
         </div>
 
+        {/* Session Summary */}
         <div className="bg-white rounded-xl shadow-sm border p-6 mb-8">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
             <div className="text-center">
@@ -183,15 +267,22 @@ export default function SessionReview({ user, sessionId }: SessionReviewProps) {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Question Attempts</h2>
+        {/* Detailed Question Review */}
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold text-gray-900">Detailed Question Review</h2>
+          
           {!attempts || attempts.length === 0 ? (
-            <p className="text-gray-600 text-center py-8">No question attempts found for this session.</p>
+            <div className="bg-white rounded-xl shadow-sm border p-8 text-center">
+              <p className="text-gray-600">No question attempts found for this session.</p>
+            </div>
           ) : (
-            <div className="space-y-4">
-              {attempts.map((attempt, index) => (
-                <div key={attempt?.id || index} className={`p-4 rounded-lg border-2 transition-colors ${
-                  attempt?.is_correct ? 'bg-green-50 border-green-200 hover:bg-green-100' : 'bg-red-50 border-red-200 hover:bg-red-100'
+            attempts.map((attempt, index) => (
+              <div key={attempt?.id || index} className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                {/* Question Header */}
+                <div className={`p-4 ${
+                  attempt?.is_correct 
+                    ? 'bg-green-50 border-b border-green-200' 
+                    : 'bg-red-50 border-b border-red-200'
                 }`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
@@ -207,28 +298,55 @@ export default function SessionReview({ user, sessionId }: SessionReviewProps) {
                           {attempt?.is_correct ? '✅ Correct' : '❌ Incorrect'}
                         </span>
                         <div className="text-sm text-gray-600">
-                          General Mathematics • Level {safeNumber(attempt?.difficulty_at_time) || 1}
+                          Level {safeNumber(attempt?.difficulty_at_time) || 1} • {formatTime(attempt?.time_taken)}
                         </div>
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="text-lg font-bold text-yellow-600">+{safeNumber(attempt?.xp_earned)} XP</div>
-                      <div className="text-sm text-gray-600">Time: {formatTime(attempt?.time_taken)}</div>
                     </div>
                   </div>
-                  
-                  {attempt?.user_answer && (
-                    <div className="mt-3 text-sm text-gray-700 bg-white bg-opacity-50 rounded p-2">
-                      <span className="font-medium">Your answer:</span> {attempt.user_answer}
+                </div>
+
+                {/* Question Content */}
+                <div className="p-6">
+                  {attempt?.question?.question_text && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                        {attempt.question.question_text}
+                      </h3>
+                      
+                      {/* Answer Options */}
+                      {renderQuestionOptions(attempt.question, attempt.user_answer, attempt.is_correct)}
+                    </div>
+                  )}
+
+                  {/* Explanation */}
+                  {attempt?.question?.explanation && (
+                    <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-start space-x-3">
+                        <div className="bg-blue-500 text-white rounded-full p-1 mt-0.5">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-blue-900 mb-2">Explanation</h4>
+                          <p className="text-blue-800 text-sm leading-relaxed">
+                            {attempt.question.explanation}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))
           )}
         </div>
 
-        <div className="text-center space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center">
+        {/* Bottom Actions */}
+        <div className="mt-8 text-center space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center">
           <button
             onClick={() => router.push('/history')}
             className="w-full sm:w-auto bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-lg font-medium text-lg"
