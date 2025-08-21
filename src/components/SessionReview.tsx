@@ -14,7 +14,7 @@ interface SessionReviewProps {
 
 export default function SessionReview({ user, sessionId }: Omit<SessionReviewProps, 'profile'>) {
   const [session, setSession] = useState<QuizSession | null>(null)
-  const [attempts, setAttempts] = useState<any[]>([])
+  const [attempts, setAttempts] = useState<(QuizAttempt & { questions?: any })[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -305,3 +305,4 @@ export default function SessionReview({ user, sessionId }: Omit<SessionReviewPro
     </div>
   )
 }
+
