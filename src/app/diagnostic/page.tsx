@@ -292,7 +292,7 @@ export default function ComprehensiveDiagnostic() {
                 </div>
               </div>
               <div className="mt-3 p-2 bg-blue-50 rounded text-xs">
-                <strong>Logic:</strong> uniqueQuestions = [...new Set(attempts.map(a => a.question_id))]<br/>
+                <strong>Logic:</strong> uniqueQuestions = [...new Set(attempts.map(a {'=>'}  a.question_id))]<br/>
                 <strong>Used by:</strong> Dashboard.tsx, QuizHistory.tsx (new)
               </div>
             </div>
@@ -328,7 +328,7 @@ export default function ComprehensiveDiagnostic() {
                 </div>
               </div>
               <div className="mt-3 p-2 bg-green-50 rounded text-xs">
-                <strong>Logic:</strong> sessions.reduce((sum, s) => sum + s.total_questions)<br/>
+                <strong>Logic:</strong> sessions.reduce((sum, s) {'=>'}  sum + s.total_questions)<br/>
                 <strong>Used by:</strong> QuizHistory.tsx (original)
               </div>
             </div>
