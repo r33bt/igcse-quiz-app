@@ -7,6 +7,23 @@ import { DashboardDataService } from '@/lib/services/DashboardDataService'
 import { QuizSessionManager } from '@/lib/quiz-sessions'
 import { User } from '@supabase/supabase-js'
 
+
+interface DashboardStats {
+  questionsAnswered: number
+  questionAttempts: number
+  quizzesCompleted: number
+  answerAccuracy: number
+  xpEarned: number
+}
+
+interface SessionStats {
+  totalQuizzes: number
+  totalQuestions: number
+  totalCorrect: number
+  averageAccuracy: number
+  totalXP: number
+}
+
 interface DetailedQuestion {
   id: string
   question_text: string
@@ -71,8 +88,8 @@ interface EnhancedDiagnosticData {
   }
   
   // Service Calculations
-  dashboardServiceStats: any
-  quizSessionManagerStats: any
+  dashboardServiceStats: DashboardStats
+  quizSessionManagerStats: SessionStats
   
   // Consistency Checks
   consistencyChecks: {
@@ -249,7 +266,7 @@ export default function EnhancedDiagnostic() {
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as "overview" | "questions" | "sessions" | "analysis")}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600'
@@ -603,3 +620,5 @@ export default function EnhancedDiagnostic() {
     </div>
   )
 }
+
+
