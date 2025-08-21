@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { User } from '@supabase/supabase-js'
@@ -174,7 +174,7 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
         </div>
         <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
           <div className="text-2xl font-bold text-green-600">{stats.questionsAnswered}</div>
-          <div className="text-sm text-gray-600">Questions Answered</div>
+          <div className="text-sm text-gray-600">Unique questions attempted</div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
           <div className="text-2xl font-bold text-purple-600">{stats.averageAccuracy}%</div>
@@ -270,7 +270,7 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
 
         {quizSessions.length === 0 ? (
           <div className="p-8 text-center">
-            <div className="text-gray-400 text-4xl mb-4">📚</div>
+            <div className="text-gray-400 text-4xl mb-4">ðŸ“š</div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No Quiz History Yet</h3>
             <p className="text-gray-600 mb-6">Start taking quizzes to see your progress here!</p>
             <button
@@ -312,8 +312,8 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
                             </div>
                             <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
                               <span>{formatDate(session.completed_at!)}</span>
-                              {timeTaken && <span>• {timeTaken} min</span>}
-                              <span>• {session.total_questions} questions</span>
+                              {timeTaken && <span>â€¢ {timeTaken} min</span>}
+                              <span>â€¢ {session.total_questions} questions</span>
                             </div>
                           </div>
                         </div>
@@ -360,7 +360,7 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           <div className="bg-green-50 rounded-lg p-4">
                             <div className="flex items-center">
-                              <div className="text-2xl text-green-600 mr-3">✓</div>
+                              <div className="text-2xl text-green-600 mr-3">âœ“</div>
                               <div>
                                 <div className="text-lg font-bold text-green-700">{session.correct_answers}</div>
                                 <div className="text-sm text-green-600">Correct Answers</div>
@@ -369,7 +369,7 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
                           </div>
                           <div className="bg-red-50 rounded-lg p-4">
                             <div className="flex items-center">
-                              <div className="text-2xl text-red-600 mr-3">✗</div>
+                              <div className="text-2xl text-red-600 mr-3">âœ—</div>
                               <div>
                                 <div className="text-lg font-bold text-red-700">{session.total_questions - session.correct_answers}</div>
                                 <div className="text-sm text-red-600">Incorrect Answers</div>
@@ -378,7 +378,7 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
                           </div>
                           <div className="bg-blue-50 rounded-lg p-4">
                             <div className="flex items-center">
-                              <div className="text-2xl text-blue-600 mr-3">⚡</div>
+                              <div className="text-2xl text-blue-600 mr-3">âš¡</div>
                               <div>
                                 <div className="text-lg font-bold text-blue-700">{session.total_xp_earned}</div>
                                 <div className="text-sm text-blue-600">XP Earned</div>
@@ -391,7 +391,7 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
                             onClick={() => router.push(`/history/${session.id}`)}
                             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
                           >
-                            📖 Review All {session.total_questions} Questions & Answers
+                            ðŸ“– Review All {session.total_questions} Questions & Answers
                           </button>
                         </div>
                       </div>
@@ -402,7 +402,7 @@ export default function QuizHistory({ user }: Omit<QuizHistoryProps, 'profile'>)
             })}
             {filteredSessions.length === 0 && quizSessions.length > 0 && (
               <div className="p-8 text-center">
-                <div className="text-gray-400 text-4xl mb-4">🔍</div>
+                <div className="text-gray-400 text-4xl mb-4">ðŸ”</div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Results Found</h3>
                 <p className="text-gray-600 mb-4">Try adjusting your filters to see more quiz sessions.</p>
                 <button

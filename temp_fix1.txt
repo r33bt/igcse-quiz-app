@@ -1,0 +1,4 @@
+﻿                <div className="mt-3 p-2 bg-blue-50 rounded text-xs">
+                  <strong>Logic:</strong> {`uniqueQuestions = [...new Set(attempts.map(a => a.question_id))]`}<br/>
+                  <strong>Used by:</strong> Dashboard.tsx, QuizHistory.tsx (new)
+                </div>

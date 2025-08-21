@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
@@ -44,25 +44,25 @@ export default function AppNavigation({
   const navigationItems = [
     {
       path: '/',
-      icon: '🏠',
+      icon: 'ðŸ ',
       label: 'Dashboard',
       color: 'hover:text-blue-600'
     },
     {
       path: '/review',
-      icon: '🔍',
+      icon: 'ðŸ”',
       label: 'Review',
       color: 'hover:text-purple-600'
     },
     {
       path: '/history',
-      icon: '📊',
+      icon: 'ðŸ“Š',
       label: 'History',
       color: 'hover:text-green-600'
     },
     {
       path: '/guide',
-      icon: '📖',
+      icon: 'ðŸ“–',
       label: 'Guide',
       color: 'hover:text-indigo-600'
     }
@@ -83,7 +83,7 @@ export default function AppNavigation({
                 onClick={goBack}
                 className="text-gray-600 hover:text-gray-900 font-medium flex items-center space-x-1"
               >
-                <span>←</span>
+                <span>â†</span>
                 <span>Back</span>
               </button>
             )}
@@ -140,9 +140,9 @@ export default function AppNavigation({
           <div className="flex items-center space-x-4">
             {/* User Progress */}
             <div className="flex items-center space-x-2">
-              <div className="text-yellow-500">⚡</div>
+              <div className="text-yellow-500">âš¡</div>
               <span className="font-semibold">{profile?.xp || 0} XP</span>
-              <div className="text-purple-500">🏆</div>
+              <div className="text-purple-500">ðŸ†</div>
               <span className="font-semibold">Level {profile?.level || 1}</span>
             </div>
 
@@ -175,7 +175,7 @@ export default function AppNavigation({
             </button>
             {pathname !== '/' && (
               <>
-                <span>›</span>
+                <span>â€º</span>
                 <span className="text-gray-900 font-medium">
                   {pathname === '/review' && 'Answer Review'}
                   {pathname === '/history' && 'Quiz History'}
