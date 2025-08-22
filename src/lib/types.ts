@@ -114,4 +114,96 @@ export interface StudySession {
   started_at: string
   ended_at: string | null
   subjects?: Subject
+}// Add to existing types.ts file
+
+export interface IGCSETopic {
+  id: string
+  code: string // "1", "2", etc.
+  name: string // "Number", "Algebra and graphs"
+  description: string | null
+  color: string // "#3B82F6"
+  total_subtopics: number
+  order_index: number
+  created_at: string
+  updated_at: string
+}
+
+export interface IGCSESubtopic {
+  id: string
+  topic_id: string
+  code: string // "C1.1", "E2.5"
+  title: string // "Types of number"
+  paper_type: 'Core' | 'Extended'
+  notes_and_examples: string | null
+  learning_objectives: string[] | null
+  order_index: number
+  created_at: string
+  updated_at: string
+  topic?: IGCSETopic
+}
+
+export interface UserSubtopicProgress {
+  id: string
+  user_id: string
+  subtopic_id: string
+  questions_attempted: number
+  questions_correct: number
+  accuracy_percentage: number
+  last_practiced: string | null
+  mastery_level: 'Beginner' | 'Developing' | 'Secure' | 'Mastered'
+  created_at: string
+  updated_at: string
+  subtopic?: IGCSESubtopic
+}
+
+// Enhanced Question interface
+export interface EnhancedQuestion extends Question {
+  igcse_topic_id: string | null
+  igcse_subtopic_id: string | null
+  paper_type: 'Core' | 'Extended' | 'Both' | null
+  difficulty_label: 'Easy' | 'Medium' | 'Hard' | null
+  exam_style: 'Multiple Choice' | 'Short Answer' | 'Long Answer' | null
+  igcse_topic?: IGCSETopic
+  igcse_subtopic?: IGCSESubtopic
+}
+
+// IGCSE-specific interfaces
+export interface IGCSETopic {
+  id: string
+  code: string
+  name: string
+  description: string | null
+  color: string
+  total_subtopics: number
+  order_index: number
+  created_at: string
+  updated_at: string
+}
+
+export interface IGCSESubtopic {
+  id: string
+  topic_id: string
+  code: string
+  title: string
+  paper_type: 'Core' | 'Extended'
+  notes_and_examples: string | null
+  learning_objectives: string[] | null
+  order_index: number
+  created_at: string
+  updated_at: string
+  topic?: IGCSETopic
+}
+
+export interface UserSubtopicProgress {
+  id: string
+  user_id: string
+  subtopic_id: string
+  questions_attempted: number
+  questions_correct: number
+  accuracy_percentage: number
+  last_practiced: string | null
+  mastery_level: 'Beginner' | 'Developing' | 'Secure' | 'Mastered'
+  created_at: string
+  updated_at: string
+  subtopic?: IGCSESubtopic
 }
