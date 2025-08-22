@@ -139,7 +139,7 @@ export default function SimpleAnswerReview({
   if (attempts.length === 0) {
     return (
       <div className="text-center py-8">
-        <div className="text-gray-400 text-4xl mb-4">ðŸ¤”</div>
+        <div className="text-gray-400 text-4xl mb-4">Ã°Å¸Â¤â€</div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">No Quiz Attempts Yet</h3>
         <p className="text-gray-600 mb-6">Start taking quizzes to review your answers here!</p>
         <button
@@ -162,7 +162,7 @@ export default function SimpleAnswerReview({
       <div className="space-y-3">
         {attempts.map((attempt) => {
           const isExpanded = expandedAttempt === attempt.id
-          const question = attempt.questions
+          const question = attempt.question
           const subject = question?.subjects
           
           // Parse options safely
@@ -213,7 +213,7 @@ export default function SimpleAnswerReview({
                     <div className={`text-2xl ${
                       attempt.is_correct ? 'text-green-500' : 'text-red-500'
                     }`}>
-                      {attempt.is_correct ? 'âœ…' : 'âŒ'}
+                      {attempt.is_correct ? 'Ã¢Å“â€¦' : 'Ã¢ÂÅ’'}
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium text-yellow-600">
@@ -224,7 +224,7 @@ export default function SimpleAnswerReview({
                       </p>
                     </div>
                     <div className="text-gray-400">
-                      {isExpanded ? 'â–¼' : 'â–¶'}
+                      {isExpanded ? 'Ã¢â€“Â¼' : 'Ã¢â€“Â¶'}
                     </div>
                   </div>
                 </div>
@@ -272,7 +272,7 @@ export default function SimpleAnswerReview({
                                     )}
                                     {isCorrectAnswer && (
                                       <span className="text-xs font-medium text-green-600">
-                                        Correct âœ“
+                                        Correct Ã¢Å“â€œ
                                       </span>
                                     )}
                                   </div>
@@ -329,7 +329,7 @@ export default function SimpleAnswerReview({
                     {!attempt.is_correct && (
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                         <p className="text-sm text-yellow-700">
-                          ðŸ’¡ <strong>Learning Tip:</strong> Review the correct answer and explanation above. 
+                          Ã°Å¸â€™Â¡ <strong>Learning Tip:</strong> Review the correct answer and explanation above. 
                           Consider practicing more questions on the topic &quot;{question?.topic || 'this subject'}&quot; 
                           to strengthen your understanding.
                         </p>
@@ -361,6 +361,7 @@ export default function SimpleAnswerReview({
     </div>
   )
 }
+
 
 
 
