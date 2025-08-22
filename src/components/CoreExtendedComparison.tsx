@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CheckCircle, Plus, Target } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
+import Link from 'next/link'
+
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -115,7 +117,7 @@ export default function CoreExtendedComparison() {
           Complete Core syllabus breakdown for 2025-2027. Click on any topic to explore subtopics and learning objectives.
         </p>
 
-        {/* Statistics */}
+                {/* Statistics */}
         <div className="flex justify-center space-x-8 mb-6">
           <div className="text-center">
             <div className="w-4 h-4 bg-blue-500 rounded-full inline-block mr-2"></div>
@@ -130,6 +132,18 @@ export default function CoreExtendedComparison() {
             <span className="text-sm font-medium">{getTotalSubtopics('Extended')}+ Extended Subtopics</span>
           </div>
         </div>
+
+        {/* Navigation Link to Quiz Practice */}
+        <div className="mb-6">
+          <Link href="/test-topics">
+            <Button className="inline-flex items-center space-x-2">
+              <Target className="h-4 w-4" />
+              <span>Start Quiz Practice</span>
+            </Button>
+          </Link>
+        </div>
+      </div>
+
       </div>
 
       {/* Paper Selection Guide */}
