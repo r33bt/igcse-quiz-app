@@ -1,4 +1,6 @@
-﻿import { useState } from 'react'
+﻿"use client"
+
+import { useState } from 'react'
 import AppNavigation from '@/components/AppNavigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
