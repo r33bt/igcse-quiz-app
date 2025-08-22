@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { CheckCircle, Plus, Target, BookOpen } from 'lucide-react'
+import { CheckCircle, Plus, Target } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -28,12 +28,14 @@ interface IGCSESubtopic {
   difficulty_level: string
 }
 
+type ViewType = 'comparison' | 'core' | 'extended'
+
 export default function CoreExtendedComparison() {
   const [topics, setTopics] = useState<IGCSETopic[]>([])
   const [coreSubtopics, setCoreSubtopics] = useState<IGCSESubtopic[]>([])
   const [extendedSubtopics, setExtendedSubtopics] = useState<IGCSESubtopic[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedView, setSelectedView] = useState<'comparison' | 'core' | 'extended'>('comparison')
+  const [selectedView, setSelectedView] = useState<ViewType>('comparison')
 
   useEffect(() => {
     fetchData()
@@ -87,6 +89,10 @@ export default function CoreExtendedComparison() {
 
   const getTotalSubtopics = (level: 'Core' | 'Extended') => {
     return level === 'Core' ? coreSubtopics.length : extendedSubtopics.length
+  }
+
+  const handleViewChange = (value: string) => {
+    setSelectedView(value as ViewType)
   }
 
   if (loading) {
@@ -159,7 +165,7 @@ export default function CoreExtendedComparison() {
       </Card>
 
       {/* View Toggle */}
-      <Tabs value={selectedView} onValueChange={(value) => setSelectedView(value as any)} className="w-full">
+      <Tabs value={selectedView} onValueChange={handleViewChange} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="comparison">Side-by-Side Comparison</TabsTrigger>
           <TabsTrigger value="core">Core Only</TabsTrigger>
