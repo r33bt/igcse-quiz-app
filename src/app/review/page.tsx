@@ -40,8 +40,6 @@ export default async function ReviewPage() {
     <ErrorBoundary>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
         <AppNavigation 
-          user={user} 
-          profile={profile} 
           title="Answer Review"
           showBackButton={true}
           backUrl="/"
@@ -62,3 +60,4 @@ export default async function ReviewPage() {
     </ErrorBoundary>
   )
 }
+

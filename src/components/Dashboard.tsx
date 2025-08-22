@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
@@ -129,13 +129,13 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <AppNavigation user={user} profile={profile} />
+      <AppNavigation />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                   <div className="mb-4">
             <a href="/diagnostic" className="text-blue-600 hover:text-blue-800 underline text-sm">
-              🔍 View Database Diagnostic
+              ?? View Database Diagnostic
             </a>
           </div>
         <div className="mb-8">
@@ -147,7 +147,7 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
           {/* Quick Start Guide */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <div className="flex items-start space-x-3">
-              <div className="text-blue-500 text-xl">💡</div>
+              <div className="text-blue-500 text-xl">??</div>
               <div>
                 <h3 className="font-semibold text-blue-900 mb-1">New to the app?</h3>
                 <p className="text-blue-700 text-sm mb-2">
@@ -158,7 +158,7 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
                   onClick={() => router.push('/guide')}
                   className="text-blue-600 hover:text-blue-700 font-medium text-sm underline"
                 >
-                  Read the complete guide →
+                  Read the complete guide ?
                 </button>
               </div>
             </div>
@@ -170,7 +170,7 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
           <div className="bg-white rounded-xl shadow-sm p-6 border">
             <div className="flex items-center">
               <div className="p-3 bg-blue-100 rounded-full">
-                <div className="w-6 h-6 text-blue-600">📝</div>
+                <div className="w-6 h-6 text-blue-600">??</div>
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Questions Answered</p>
@@ -185,7 +185,7 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
           <div className="bg-white rounded-xl shadow-sm p-6 border">
             <div className="flex items-center">
               <div className="p-3 bg-green-100 rounded-full">
-                <div className="w-6 h-6 text-green-600">✅</div>
+                <div className="w-6 h-6 text-green-600">?</div>
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Answer Accuracy</p>
@@ -200,7 +200,7 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
           <div className="bg-white rounded-xl shadow-sm p-6 border">
             <div className="flex items-center">
               <div className="p-3 bg-yellow-100 rounded-full">
-                <div className="w-6 h-6 text-yellow-600">⭐</div>
+                <div className="w-6 h-6 text-yellow-600">?</div>
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">XP Earned</p>
@@ -215,7 +215,7 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
           <div className="bg-white rounded-xl shadow-sm p-6 border">
             <div className="flex items-center">
               <div className="p-3 bg-purple-100 rounded-full">
-                <div className="w-6 h-6 text-purple-600">🎯</div>
+                <div className="w-6 h-6 text-purple-600">??</div>
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Quizzes Completed</p>
@@ -272,7 +272,7 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
               onClick={() => router.push('/history')}
               className="text-blue-600 hover:text-blue-700 font-medium text-sm"
             >
-              View All History →
+              View All History ?
             </button>
           </div>
           
@@ -283,7 +283,7 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
             </div>
           ) : recentActivity.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm border p-8 text-center">
-              <div className="text-gray-400 text-4xl mb-4">📚</div>
+              <div className="text-gray-400 text-4xl mb-4">??</div>
               <p className="text-gray-600 mb-4">No quiz activity yet</p>
               <p className="text-gray-500 text-sm">Start your first quiz to see your progress here!</p>
             </div>
@@ -299,7 +299,7 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-bold ${
                             attempt.is_correct ? 'bg-green-500' : 'bg-red-500'
                           }`}>
-                            {attempt.is_correct ? '✓' : '✗'}
+                            {attempt.is_correct ? '?' : '?'}
                           </div>
                           <div>
                             <p className="text-sm font-medium text-gray-900">
@@ -328,5 +328,6 @@ export default function Dashboard({ user, profile, subjects }: DashboardProps) {
     </div>
   )
 }
+
 
 

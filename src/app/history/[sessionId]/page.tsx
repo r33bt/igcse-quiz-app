@@ -18,7 +18,7 @@ export default async function SessionReviewPage({ params }: PageProps) {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <AppNavigation user={user} profile={null} title="Session Review" showBackButton={true} backUrl="/history" />
+        <AppNavigation title="Session Review" showBackButton={true} backUrl="/history" />
         <SessionReview user={user} sessionId={sessionId} />
       </div>
     </ErrorBoundary>
