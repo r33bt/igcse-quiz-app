@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import SimpleAnswerReview from '@/components/SimpleAnswerReview'
 import AppNavigation from '@/components/AppNavigation'
@@ -60,4 +60,5 @@ export default async function ReviewPage() {
     </ErrorBoundary>
   )
 }
+
 
