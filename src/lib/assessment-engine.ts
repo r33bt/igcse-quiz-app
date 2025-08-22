@@ -8,10 +8,14 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+export interface QuestionOptions {
+  [key: string]: string
+}
+
 export interface Question {
   id: string
   question_text: string
-  options: any
+  options: QuestionOptions | null
   correct_answer: string
   explanation?: string
   difficulty: number
@@ -47,6 +51,21 @@ export interface GeneratedQuiz {
     mediumQuestions: number
     hardQuestions: number
   }
+}
+
+interface QuestionData {
+  id: string
+  question_text: string
+  options: QuestionOptions | null
+  correct_answer: string
+  explanation?: string
+  difficulty: number
+  difficulty_label: 'Easy' | 'Medium' | 'Hard'
+  question_category: 'Core' | 'Extended'
+  estimated_time_seconds: number
+  subtopic_code?: string
+  subtopic_title?: string
+  times_asked?: number
 }
 
 export class AssessmentEngine {
@@ -170,7 +189,7 @@ export class AssessmentEngine {
         questions.push(...this.selectQuestionsByDifficulty(questionsByDifficulty.hard, config.difficultyMix.hard))
       } else if (config.focusAreas) {
         // Focused selection for practice
-        const focusQuestions: Question[] = []
+        const focusQuestions: QuestionData[] = []
         config.focusAreas.forEach(area => {
           if (area === 'Easy') focusQuestions.push(...questionsByDifficulty.easy)
           if (area === 'Medium') focusQuestions.push(...questionsByDifficulty.medium)
@@ -212,7 +231,7 @@ export class AssessmentEngine {
   /**
    * Select specified number of questions from array, prioritizing less-used questions
    */
-  private static selectQuestionsByDifficulty(questions: any[], count: number): Question[] {
+  private static selectQuestionsByDifficulty(questions: QuestionData[], count: number): Question[] {
     if (questions.length === 0) return []
     
     // Sort by usage (times_asked) to prefer less-used questions
