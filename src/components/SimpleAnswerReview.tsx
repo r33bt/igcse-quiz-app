@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
@@ -86,7 +86,7 @@ export default function SimpleAnswerReview({
         })
       )
 
-      setAttempts(attemptsWithQuestions)
+      console.log('Attempts data:', attemptsWithQuestions); setAttempts(attemptsWithQuestions)
 
     } catch (err) {
       console.error('Error loading attempts:', err)
@@ -157,7 +157,7 @@ export default function SimpleAnswerReview({
   if (attempts.length === 0) {
     return (
       <div className="text-center py-8">
-        <div className="text-gray-400 text-4xl mb-4">Ã°Å¸Â¤â€</div>
+        <div className="text-gray-400 text-4xl mb-4">ÃƒÂ°Ã…Â¸Ã‚Â¤Ã¢â‚¬Â</div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">No Quiz Attempts Yet</h3>
         <p className="text-gray-600 mb-6">Start taking quizzes to review your answers here!</p>
         <button
@@ -231,7 +231,7 @@ export default function SimpleAnswerReview({
                     <div className={`text-2xl ${
                       attempt.is_correct ? 'text-green-500' : 'text-red-500'
                     }`}>
-                      {attempt.is_correct ? 'Ã¢Å“â€¦' : 'Ã¢ÂÅ’'}
+                      {attempt.is_correct ? 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦' : 'ÃƒÂ¢Ã‚ÂÃ…â€™'}
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium text-yellow-600">
@@ -242,7 +242,7 @@ export default function SimpleAnswerReview({
                       </p>
                     </div>
                     <div className="text-gray-400">
-                      {isExpanded ? 'Ã¢â€“Â¼' : 'Ã¢â€“Â¶'}
+                      {isExpanded ? 'ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¼' : 'ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¶'}
                     </div>
                   </div>
                 </div>
@@ -290,7 +290,7 @@ export default function SimpleAnswerReview({
                                     )}
                                     {isCorrectAnswer && (
                                       <span className="text-xs font-medium text-green-600">
-                                        Correct Ã¢Å“â€œ
+                                        Correct ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“
                                       </span>
                                     )}
                                   </div>
@@ -347,7 +347,7 @@ export default function SimpleAnswerReview({
                     {!attempt.is_correct && (
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                         <p className="text-sm text-yellow-700">
-                          Ã°Å¸â€™Â¡ <strong>Learning Tip:</strong> Review the correct answer and explanation above. 
+                          ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Â¡ <strong>Learning Tip:</strong> Review the correct answer and explanation above. 
                           Consider practicing more questions on the topic &quot;{question?.topic || 'this subject'}&quot; 
                           to strengthen your understanding.
                         </p>
@@ -379,6 +379,7 @@ export default function SimpleAnswerReview({
     </div>
   )
 }
+
 
 
 
