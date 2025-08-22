@@ -4,21 +4,28 @@ import SessionReview from '@/components/SessionReview'
 import AppNavigation from '@/components/AppNavigation'
 import ErrorBoundary from '@/components/ErrorBoundary'
 
-interface PageProps {
-  params: Promise<{
-    sessionId: string
-  }>
-}
-
-export default async function SessionReviewPage({ params }: PageProps) {
-  const { sessionId } = await params
+export default async function SessionReviewPage({ 
+  params 
+}: { 
+  params: Promise<{ sessionId: string }> 
+}) {
+  const { sessionId } = await params  // ← This is the critical fix
   const supabase = await createClient()
+
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) { redirect('/login') }
+
+  if (!user) {
+    redirect('/login')
+  }
+
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <AppNavigation title="Session Review" showBackButton={true} backUrl="/history" />
+        <AppNavigation 
+          title="Session Review" 
+          showBackButton={true} 
+          backUrl="/history" 
+        />
         <SessionReview user={user} sessionId={sessionId} />
       </div>
     </ErrorBoundary>
