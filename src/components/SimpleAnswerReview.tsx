@@ -13,7 +13,7 @@ interface QuizAttempt {
   time_taken: number
   user_answer: string
   created_at: string
-  questions?: {
+  question?: {
     id: string
     question_text: string
     correct_answer: string
@@ -361,6 +361,7 @@ export default function SimpleAnswerReview({
     </div>
   )
 }
+
 
 
 
