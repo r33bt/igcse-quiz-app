@@ -4,7 +4,12 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ChevronDown, ChevronRight, BookOpen, Target } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+
+// Create Supabase client directly in component for now
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 interface IGCSETopic {
   id: string
@@ -46,6 +51,8 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
     try {
       setLoading(true)
       setError(null)
+
+      console.log('Fetching topics and subtopics...')
 
       // Fetch topics - ordered by topic_number
       const { data: topicsData, error: topicsError } = await supabase
@@ -134,6 +141,12 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
       <div className="text-center py-8">
         <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
         <p className="text-gray-600">No topics available</p>
+        <button 
+          onClick={fetchTopicsAndSubtopics}
+          className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+        >
+          Reload Topics
+        </button>
       </div>
     )
   }
