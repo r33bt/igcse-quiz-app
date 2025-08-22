@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import AppNavigation from '@/components/AppNavigation'
 
 export default function GuidePage() {
   return (
@@ -213,3 +214,4 @@ export default function GuidePage() {
     </div>
   )
 }
+

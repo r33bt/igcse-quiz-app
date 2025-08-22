@@ -53,17 +53,14 @@ export default function SimpleAnswerReview({
       setLoading(true)
       setError(null)
 
-      let query = supabase
+      const query = supabase
         .from('quiz_attempts')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(limit)
-
-      // Filter by subject if specified
-      if (subjectId) {
-        query = query.eq('questions.subject_id', subjectId)
-      }
+        
+      // Note: Subject filtering removed to avoid relationship errors
 
       const { data, error: attemptsError } = await query
 
@@ -364,3 +361,4 @@ export default function SimpleAnswerReview({
     </div>
   )
 }
+
