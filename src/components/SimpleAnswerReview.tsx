@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { User } from '@supabase/supabase-js'
@@ -53,22 +53,40 @@ export default function SimpleAnswerReview({
       setLoading(true)
       setError(null)
 
-      const query = supabase
+      // First, get quiz attempts (simple query)
+      const { data: attemptsData, error: attemptsError } = await supabase
         .from('quiz_attempts')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(limit)
-        
-      // Note: Subject filtering removed to avoid relationship errors
-
-      const { data, error: attemptsError } = await query
 
       if (attemptsError) {
         throw attemptsError
       }
 
-      setAttempts(data || [])
+      // Then, fetch questions for each attempt separately (SAME AS SessionReview)
+      const attemptsWithQuestions = await Promise.all(
+        (attemptsData || []).map(async (attempt) => {
+          try {
+            const { data: questionData } = await supabase
+              .from('questions')
+              .select('*, subjects(*)')
+              .eq('id', attempt.question_id)
+              .single()
+            
+            return {
+              ...attempt,
+              question: questionData
+            }
+          } catch (err) {
+            console.error('Error fetching question:', err)
+            return attempt
+          }
+        })
+      )
+
+      setAttempts(attemptsWithQuestions)
 
     } catch (err) {
       console.error('Error loading attempts:', err)
