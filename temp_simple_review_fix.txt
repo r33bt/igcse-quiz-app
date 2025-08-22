@@ -1,0 +1,47 @@
+﻿  const loadRecentAttempts = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // First, get quiz attempts (simple query)
+      const { data: attemptsData, error: attemptsError } = await supabase
+        .from('quiz_attempts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      if (attemptsError) {
+        throw attemptsError
+      }
+
+      // Then, fetch questions for each attempt separately (SAME AS SessionReview)
+      const attemptsWithQuestions = await Promise.all(
+        (attemptsData || []).map(async (attempt) => {
+          try {
+            const { data: questionData } = await supabase
+              .from('questions')
+              .select('*, subjects(*)')
+              .eq('id', attempt.question_id)
+              .single()
+            
+            return {
+              ...attempt,
+              questions: questionData  // Store as 'questions' (not 'question')
+            }
+          } catch (err) {
+            console.error('Error fetching question:', err)
+            return attempt
+          }
+        })
+      )
+
+      setAttempts(attemptsWithQuestions)
+
+    } catch (err) {
+      console.error('Error loading attempts:', err)
+      setError('Failed to load quiz attempts. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }, [user.id, subjectId, limit, supabase])

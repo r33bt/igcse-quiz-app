@@ -1,10 +1,31 @@
 ﻿"use client"
 
 import { useState, useEffect } from 'react'
-import { IGCSETopic, IGCSESubtopic } from '@/lib/types'
-import { createClient } from '@/lib/supabase/client'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { ChevronDown, ChevronRight, BookOpen, Target } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+
+interface IGCSETopic {
+  id: string
+  topic_number: number
+  title: string
+  description: string
+  color: string
+  created_at: string
+  updated_at: string
+}
+
+interface IGCSESubtopic {
+  id: string
+  topic_id: string
+  subtopic_code: string
+  title: string
+  description: string
+  difficulty_level: string
+  created_at: string
+  updated_at: string
+}
 
 interface QuizTopicSelectorProps {
   onTopicSelect: (topicId: string, subtopicId?: string) => void
@@ -12,118 +33,194 @@ interface QuizTopicSelectorProps {
 
 export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorProps) {
   const [topics, setTopics] = useState<IGCSETopic[]>([])
-  const [subtopics, setSubtopics] = useState<Record<string, IGCSESubtopic[]>>({})
-  const [selectedTopic, setSelectedTopic] = useState<string | null>(null)
+  const [subtopics, setSubtopics] = useState<IGCSESubtopic[]>([])
+  const [expandedTopic, setExpandedTopic] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-
-  const supabase = createClient()
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    loadTopics()
+    fetchTopicsAndSubtopics()
   }, [])
 
-  const loadTopics = async () => {
+  const fetchTopicsAndSubtopics = async () => {
     try {
-      const { data: topicsData } = await supabase
+      setLoading(true)
+      setError(null)
+
+      // Fetch topics - ordered by topic_number
+      const { data: topicsData, error: topicsError } = await supabase
         .from('igcse_topics')
         .select('*')
-        .order('order_index')
+        .order('topic_number', { ascending: true })
 
-      const { data: subtopicsData } = await supabase
+      if (topicsError) {
+        console.error('Topics fetch error:', topicsError)
+        throw topicsError
+      }
+
+      // Fetch subtopics - ordered by subtopic_code
+      const { data: subtopicsData, error: subtopicsError } = await supabase
         .from('igcse_subtopics')
         .select('*')
-        .eq('paper_type', 'Core')
-        .order('order_index')
+        .eq('difficulty_level', 'Core')
+        .order('subtopic_code', { ascending: true })
 
-      if (topicsData && subtopicsData) {
-        setTopics(topicsData)
-        
-        // Group subtopics by topic_id
-        const grouped = subtopicsData.reduce((acc, subtopic) => {
-          if (!acc[subtopic.topic_id]) acc[subtopic.topic_id] = []
-          acc[subtopic.topic_id].push(subtopic)
-          return acc
-        }, {} as Record<string, IGCSESubtopic[]>)
-        
-        setSubtopics(grouped)
+      if (subtopicsError) {
+        console.error('Subtopics fetch error:', subtopicsError)
+        throw subtopicsError
       }
+
+      setTopics(topicsData || [])
+      setSubtopics(subtopicsData || [])
+      
+      console.log('Loaded topics:', topicsData?.length)
+      console.log('Loaded subtopics:', subtopicsData?.length)
+
     } catch (error) {
-      console.error('Error loading topics:', error)
+      console.error('Error fetching data:', error)
+      setError(error instanceof Error ? error.message : 'Failed to load topics')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleTopicClick = (topicId: string) => {
-    setSelectedTopic(selectedTopic === topicId ? null : topicId)
+  const getSubtopicsForTopic = (topicId: string) => {
+    return subtopics.filter(subtopic => subtopic.topic_id === topicId)
+  }
+
+  const handleTopicClick = (topic: IGCSETopic) => {
+    if (expandedTopic === topic.id) {
+      setExpandedTopic(null)
+    } else {
+      setExpandedTopic(topic.id)
+    }
+    onTopicSelect(topic.id)
+  }
+
+  const handleSubtopicClick = (topic: IGCSETopic, subtopic: IGCSESubtopic) => {
+    onTopicSelect(topic.id, subtopic.id)
   }
 
   if (loading) {
-    return <div className="text-center py-8">Loading topics...</div>
+    return (
+      <div className="space-y-4">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading IGCSE topics...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-600 font-medium">Error loading topics</p>
+          <p className="text-red-500 text-sm mt-1">{error}</p>
+          <button 
+            onClick={fetchTopicsAndSubtopics}
+            className="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (topics.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-600">No topics available</p>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="text-center mb-6">
+    <div className="space-y-4">
+      <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Choose Quiz Topic</h2>
         <p className="text-gray-600">Select a topic or specific subtopic to practice</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {topics.map((topic) => (
-          <Card key={topic.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader 
-              className="cursor-pointer"
-              onClick={() => handleTopicClick(topic.id)}
-            >
-              <div className="flex items-center space-x-3">
-                <div 
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-                  style={{ backgroundColor: topic.color }}
-                >
-                  {topic.code}
-                </div>
-                <div>
-                  <CardTitle className="text-lg">{topic.name}</CardTitle>
-                  <p className="text-sm text-gray-600">
-                    {subtopics[topic.id]?.length || 0} subtopics
-                  </p>
-                </div>
-              </div>
-            </CardHeader>
+      <div className="grid gap-4">
+        {topics.map((topic) => {
+          const topicSubtopics = getSubtopicsForTopic(topic.id)
+          const isExpanded = expandedTopic === topic.id
 
-            {selectedTopic === topic.id && (
-              <CardContent className="pt-0">
-                <div className="space-y-2">
-                  <button
-                    onClick={() => onTopicSelect(topic.id)}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors mb-3"
-                  >
-                    🎯 Practice All {topic.name}
-                  </button>
-                  
-                  <div className="border-t pt-3">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Or choose specific subtopic:</p>
-                    <div className="space-y-1">
-                      {subtopics[topic.id]?.map((subtopic) => (
-                        <button
-                          key={subtopic.id}
-                          onClick={() => onTopicSelect(topic.id, subtopic.id)}
-                          className="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <Badge variant="outline" className="text-xs">{subtopic.code}</Badge>
-                            <span>{subtopic.title}</span>
-                          </div>
-                        </button>
-                      ))}
+          return (
+            <Card 
+              key={topic.id} 
+              className="transition-all duration-200 hover:shadow-md cursor-pointer"
+              style={{ borderLeft: `4px solid ${topic.color}` }}
+            >
+              <CardHeader
+                onClick={() => handleTopicClick(topic)}
+                className="pb-3"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div 
+                      className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
+                      style={{ backgroundColor: topic.color }}
+                    >
+                      {topic.topic_number}
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">{topic.title}</CardTitle>
+                      <CardDescription className="text-sm">
+                        {topic.description}
+                      </CardDescription>
                     </div>
                   </div>
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="secondary" className="text-xs">
+                      {topicSubtopics.length} subtopics
+                    </Badge>
+                    {isExpanded ? (
+                      <ChevronDown className="h-5 w-5 text-gray-400" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5 text-gray-400" />
+                    )}
+                  </div>
                 </div>
-              </CardContent>
-            )}
-          </Card>
-        ))}
+              </CardHeader>
+
+              {isExpanded && topicSubtopics.length > 0 && (
+                <CardContent className="pt-0">
+                  <div className="space-y-2 pl-4 border-l-2 ml-5" style={{ borderColor: topic.color + '40' }}>
+                    {topicSubtopics.map((subtopic) => (
+                      <div
+                        key={subtopic.id}
+                        onClick={() => handleSubtopicClick(topic, subtopic)}
+                        className="p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <Badge variant="outline" className="text-xs font-mono">
+                                {subtopic.subtopic_code}
+                              </Badge>
+                              <span className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                                {subtopic.title}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600 mt-1 ml-16">
+                              {subtopic.description}
+                            </p>
+                          </div>
+                          <Target className="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          )
+        })}
       </div>
     </div>
   )
