@@ -71,7 +71,7 @@ export default function SimpleAnswerReview({
           try {
             const { data: questionData } = await supabase
               .from('questions')
-              .select('*, subjects(*)')
+              .select('*')
               .eq('id', attempt.question_id)
               .single()
             
@@ -379,6 +379,7 @@ export default function SimpleAnswerReview({
     </div>
   )
 }
+
 
 
 
