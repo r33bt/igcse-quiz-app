@@ -156,11 +156,11 @@ export default function QuizTopicSelector() {
       // Fallback to your known user ID for testing
       if (!user) {
         console.log('?? DEBUG: Using fallback user ID for testing')
-        user = { id: 'a8ff59f4-cc3b-4afe-a1f7-826c73cc27b7' }
+        user = { id: "a1b2c3d4-e5f6-7890-1234-567890abcdef" }
       }
     } catch (authError) {
       console.log('?? DEBUG: Auth error, using fallback:', authError)
-      user = { id: 'a8ff59f4-cc3b-4afe-a1f7-826c73cc27b7' }
+      user = { id: "a1b2c3d4-e5f6-7890-1234-567890abcdef" }
     }
     console.log('?? DEBUG: Current user:', user?.id) // TEMP DEBUG
       if (!user) return
