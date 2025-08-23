@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { ChevronDown, ChevronRight, Target, BookOpen, Play, BarChart3, Trophy, Clock, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
-import { MasteryCalculator, type UserProgress, type MasteryLevel } from '@/lib/mastery-calculator'
-import { AssessmentEngine } from '@/lib/assessment-engine'
+import { MasteryCalculator, type UserProgress, type MasteryLevel } from '../lib/mastery-calculator'
+import { AssessmentEngine } from '../lib/assessment-engine'
 import Link from 'next/link'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -96,18 +96,8 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
       // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       if (userError || !user) {
-        throw new Error('User not authenticated')
-      }
-
-      // Fetch user preferences
-      const { data: preferences } = await supabase
-        .from('user_learning_preferences')
-        .select('chosen_path')
-        .eq('user_id', user.id)
-        .single()
-
-      if (preferences?.chosen_path) {
-        setUserPath(preferences.chosen_path as 'Core' | 'Extended')
+        console.log('User not authenticated, using guest mode')
+        // Continue without user-specific data for now
       }
 
       // Fetch topics
@@ -135,17 +125,34 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
 
       if (extendedError) throw extendedError
 
-      // Fetch user progress
-      const { data: progressData, error: progressError } = await supabase
-        .from('user_subtopic_progress')
-        .select('*')
-        .eq('user_id', user.id)
+      // Fetch user progress (if authenticated)
+      let progressData: SubtopicProgress[] = []
+      let userPreferences: { chosen_path?: string } | null = null
 
-      if (progressError) throw progressError
+      if (user) {
+        const { data: prefData } = await supabase
+          .from('user_learning_preferences')
+          .select('chosen_path')
+          .eq('user_id', user.id)
+          .single()
+
+        userPreferences = prefData
+
+        const { data: progressResult } = await supabase
+          .from('user_subtopic_progress')
+          .select('*')
+          .eq('user_id', user.id)
+
+        progressData = progressResult || []
+      }
+
+      if (userPreferences?.chosen_path) {
+        setUserPath(userPreferences.chosen_path as 'Core' | 'Extended')
+      }
 
       // Create progress map
       const progressMap = new Map<string, SubtopicProgress>()
-      progressData?.forEach(p => {
+      progressData.forEach(p => {
         progressMap.set(p.subtopic_id, p as SubtopicProgress)
       })
 
@@ -193,6 +200,10 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
       setExtendedSubtopics(enhancedExtended)
       setUserProgress(progressMap)
 
+      console.log('Loaded topics:', topicsData?.length)
+      console.log('Loaded core subtopics:', enhancedCore.length)
+      console.log('Loaded extended subtopics:', enhancedExtended.length)
+
     } catch (error) {
       console.error('Error fetching data:', error)
       setError(error instanceof Error ? error.message : 'Failed to load topics')
@@ -228,20 +239,21 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
       if (action === 'assessment') {
         const quiz = await AssessmentEngine.generateBaselineQuiz(subtopic.id, userPath)
         console.log('Generated assessment quiz:', quiz)
-        // TODO: Navigate to quiz interface
+        alert(`Assessment quiz generated for ${subtopic.title} with ${quiz.questions.length} questions!`)
       } else if (action === 'practice') {
         const quiz = await AssessmentEngine.generatePracticeQuiz(subtopic.id, userPath)
         console.log('Generated practice quiz:', quiz)
-        // TODO: Navigate to quiz interface
+        alert(`Practice quiz generated for ${subtopic.title} with ${quiz.questions.length} questions!`)
       } else if (action === 'mastery') {
         const quiz = await AssessmentEngine.generateMasteryQuiz(subtopic.id, userPath)
         console.log('Generated mastery quiz:', quiz)
-        // TODO: Navigate to quiz interface
+        alert(`Mastery quiz generated for ${subtopic.title} with ${quiz.questions.length} questions!`)
       }
       
       onTopicSelect(subtopic.topic_id, subtopic.id)
     } catch (error) {
       console.error('Error generating quiz:', error)
+      alert('Error generating quiz: ' + (error instanceof Error ? error.message : 'Unknown error'))
     }
   }
 
@@ -315,16 +327,14 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
       
       case 'Approaching':
         return (
-          <div className="flex space-x-2">
-            <Button
-              size="sm"
-              onClick={() => handleSubtopicAction(subtopic, 'practice')}
-              className="bg-yellow-500 hover:bg-yellow-600 text-white"
-            >
-              <Target className="h-4 w-4 mr-1" />
-              Practice Hard Questions
-            </Button>
-          </div>
+          <Button
+            size="sm"
+            onClick={() => handleSubtopicAction(subtopic, 'practice')}
+            className="bg-yellow-500 hover:bg-yellow-600 text-white"
+          >
+            <Target className="h-4 w-4 mr-1" />
+            Practice Hard Questions
+          </Button>
         )
       
       case 'Proficient':
@@ -369,7 +379,16 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
         )
       
       default:
-        return null
+        return (
+          <Button
+            size="sm"
+            onClick={() => handleSubtopicAction(subtopic, 'assessment')}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <Target className="h-4 w-4 mr-1" />
+            Start Learning
+          </Button>
+        )
     }
   }
 
