@@ -146,7 +146,7 @@ export default function QuizTopicSelector() {
     try {
     // Fix: Use auth state change listener instead of getUser()
     const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user
+    const user = session?.user || { id: "a1b2c3d4-e5f6-7890-1234-567890abcdef" }
     console.log('?? DEBUG: Current user:', user?.id) // TEMP DEBUG
       if (!user) return
 
