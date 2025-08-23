@@ -143,7 +143,9 @@ export default function QuizTopicSelector() {
 
   const loadUserProgress = async (subtopicIds: string[]) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+    // Fix: Use auth state change listener instead of getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user
     console.log('?? DEBUG: Current user:', user?.id) // TEMP DEBUG
       if (!user) return
 
