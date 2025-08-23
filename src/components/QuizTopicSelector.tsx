@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { ChevronDown, ChevronRight, Target, BookOpen, Play, BarChart3, Trophy, CheckCircle2, RefreshCw, TrendingUp, Clock, Award } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
+import SubtopicProgressCard from './SubtopicProgressCard'
 // import Link from 'next/link' // Removed - not used in this component
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
