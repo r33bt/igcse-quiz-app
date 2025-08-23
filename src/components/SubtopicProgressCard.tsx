@@ -1,10 +1,23 @@
+// ENHANCED VERSION - Replace your current SubtopicProgressCard.tsx with this:
 "use client"
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Card, CardContent } from '@/components/ui/card'
-import { Target, BookOpen, Trophy, CheckCircle2, RefreshCw, BarChart3, Clock } from 'lucide-react'
+import { 
+  Target, 
+  BookOpen, 
+  Trophy, 
+  CheckCircle2, 
+  RefreshCw, 
+  BarChart3, 
+  Clock,
+  User,
+  Zap,
+  AlertCircle,
+  CheckCircle
+} from 'lucide-react'
 import Link from 'next/link'
 
 type MasteryLevel = 'Unassessed' | 'Developing' | 'Approaching' | 'Proficient' | 'Mastery'
@@ -138,6 +151,17 @@ export default function SubtopicProgressCard({
     return colors[level]
   }
 
+  const getMasteryBorderColor = (level: MasteryLevel): string => {
+    const colors = {
+      'Mastery': '#22c55e',
+      'Proficient': '#3b82f6',
+      'Approaching': '#eab308',
+      'Developing': '#f97316',
+      'Unassessed': '#94a3b8'
+    }
+    return colors[level]
+  }
+
   const getMasteryTextColor = (level: MasteryLevel): string => {
     const colors = {
       'Mastery': 'text-green-700',
@@ -164,26 +188,29 @@ export default function SubtopicProgressCard({
         return (
           <div className="space-y-2">
             <Link href={`/quiz/assessment/${subtopic.id}`}>
-              <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700">
+              <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700 h-12">
                 <Target className="h-4 w-4 mr-2" />
                 Take Assessment ({availability.baselineReady}Q)
               </Button>
             </Link>
             <p className="text-xs text-gray-500 text-center">
-              Establish your baseline in this topic
+              ~ 8 minutes • Establish your baseline in this topic
             </p>
           </div>
         )
 
       case 'Developing':
         return (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Link href={`/quiz/practice/${subtopic.id}`}>
-              <Button size="sm" className="w-full bg-orange-600 hover:bg-orange-700">
+              <Button size="sm" className="w-full bg-orange-600 hover:bg-orange-700 h-12">
                 <BookOpen className="h-4 w-4 mr-2" />
                 Focus Practice (8Q)
               </Button>
             </Link>
+            <p className="text-xs text-gray-600 text-center">
+              Target your weak areas for improvement
+            </p>
             <div className="flex gap-2">
               <Link href={`/quiz/assessment/${subtopic.id}`} className="flex-1">
                 <Button size="sm" variant="outline" className="w-full text-xs">
@@ -205,13 +232,13 @@ export default function SubtopicProgressCard({
         return (
           <div className="space-y-2">
             <Link href={`/quiz/practice/${subtopic.id}?focus=hard`}>
-              <Button size="sm" className="w-full bg-yellow-600 hover:bg-yellow-700">
+              <Button size="sm" className="w-full bg-yellow-600 hover:bg-yellow-700 h-12">
                 <BarChart3 className="h-4 w-4 mr-2" />
                 Practice Hard Questions (5Q)
               </Button>
             </Link>
-            <p className="text-xs text-gray-500 text-center">
-              You are close! Master the challenging concepts
+            <p className="text-xs text-gray-600 text-center">
+              Challenge yourself with complex problems
             </p>
           </div>
         )
@@ -220,13 +247,13 @@ export default function SubtopicProgressCard({
         return (
           <div className="space-y-2">
             <Link href={`/quiz/mastery/${subtopic.id}`}>
-              <Button size="sm" className="w-full bg-green-600 hover:bg-green-700">
+              <Button size="sm" className="w-full bg-green-600 hover:bg-green-700 h-12">
                 <Trophy className="h-4 w-4 mr-2" />
                 Attempt Mastery Quiz (15Q)
               </Button>
             </Link>
-            <p className="text-xs text-gray-500 text-center">
-              Prove your mastery with validation quiz
+            <p className="text-xs text-gray-600 text-center">
+              ~ 12 minutes • Prove your mastery with validation quiz
             </p>
           </div>
         )
@@ -234,10 +261,10 @@ export default function SubtopicProgressCard({
       case 'Mastery':
         return (
           <div className="space-y-2">
-            <div className="flex items-center justify-center gap-2 p-2 bg-green-50 rounded-lg border border-green-200">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <Badge className="bg-green-100 text-green-800 border-green-300">
-                ? Mastered
+            <div className="flex items-center justify-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <Badge className="bg-green-100 text-green-800 border-green-300 font-medium">
+                ✅ Mastered
               </Badge>
             </div>
             <Link href={`/quiz/review/${subtopic.id}`}>
@@ -262,101 +289,154 @@ export default function SubtopicProgressCard({
   }
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-4">
-        <div className="space-y-4">
-          {/* Header */}
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <div className={`w-3 h-3 rounded-full ${getMasteryColor(masteryLevel)}`}></div>
-                <h3 className="font-semibold text-gray-900">
-                  {subtopic.subtopic_code} {subtopic.title}
-                </h3>
-                <Badge variant="outline" className={`text-xs ${getMasteryTextColor(masteryLevel)}`}>
-                  {masteryLevel}
-                </Badge>
-              </div>
-              <p className="text-sm text-gray-600 mb-3">{subtopic.description}</p>
-              
-              {/* Mastery Progress */}
-              {progress && progress.questions_attempted > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Overall Progress</span>
-                    <span className="font-medium">{masteryPercentage}%</span>
-                  </div>
-                  <Progress value={masteryPercentage} className="h-2" />
-                </div>
-              )}
+    <Card 
+      className="hover:shadow-lg transition-all duration-200 border-l-4" 
+      style={{ borderLeftColor: getMasteryBorderColor(masteryLevel) }}
+    >
+      <CardContent className="p-0">
+        {/* 1. FIXED CONTENT SECTION - Subtopic Info */}
+        <div className="bg-slate-50 px-6 py-4 border-b border-slate-100">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-slate-600" />
+              <span className="text-sm font-medium text-slate-600 uppercase tracking-wide">
+                Topic {subtopic.subtopic_code}
+              </span>
             </div>
+            <Badge variant="outline" className="text-xs">
+              {subtopic.paper_type}
+            </Badge>
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-1">
+            {subtopic.title}
+          </h3>
+          <p className="text-sm text-slate-600 leading-relaxed">
+            {subtopic.description}
+          </p>
+        </div>
+
+        {/* 2. USER PERFORMANCE SECTION - Your Progress */}
+        <div className="px-6 py-5">
+          <div className="flex items-center gap-2 mb-4">
+            <User className="h-4 w-4 text-blue-600" />
+            <span className="text-sm font-medium text-blue-900 uppercase tracking-wide">
+              Your Performance
+            </span>
           </div>
 
-          {/* Performance Breakdown */}
-          {progress && progress.questions_attempted > 0 && (
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-gray-700">Performance Breakdown</h4>
-              
-              {/* Difficulty Analysis */}
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <div className="text-center p-2 bg-green-50 rounded">
-                  <div className="font-medium text-green-700">Easy</div>
-                  <div className="text-green-600">
-                    {metrics.easyAccuracy}% ({progress.easy_questions_correct}/{progress.easy_questions_attempted})
+          {progress && progress.questions_attempted > 0 ? (
+            <div className="space-y-4">
+              {/* Overall Progress - Prominent Display */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${getMasteryColor(masteryLevel)}`} />
+                    <span className="font-semibold text-slate-900">
+                      {masteryLevel}
+                    </span>
+                    <Badge className={`${getMasteryTextColor(masteryLevel)} bg-white border font-medium`}>
+                      {masteryPercentage}%
+                    </Badge>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-slate-900">
+                      {progress.questions_correct}/{progress.questions_attempted}
+                    </div>
+                    <div className="text-xs text-slate-500 uppercase tracking-wide">correct</div>
                   </div>
                 </div>
-                <div className="text-center p-2 bg-yellow-50 rounded">
-                  <div className="font-medium text-yellow-700">Medium</div>
-                  <div className="text-yellow-600">
-                    {metrics.mediumAccuracy}% ({progress.medium_questions_correct}/{progress.medium_questions_attempted})
+                <Progress value={masteryPercentage} className="h-3" />
+              </div>
+
+              {/* Performance Breakdown - Enhanced */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Difficulty Breakdown
+                </h4>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="text-center p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                    <div className="text-lg font-bold text-emerald-700">{metrics.easyAccuracy}%</div>
+                    <div className="text-xs text-slate-600 mb-1">Easy Questions</div>
+                    <div className="text-xs text-slate-500">
+                      {progress.easy_questions_correct}/{progress.easy_questions_attempted}
+                    </div>
                   </div>
-                </div>
-                <div className="text-center p-2 bg-red-50 rounded">
-                  <div className="font-medium text-red-700">Hard</div>
-                  <div className="text-red-600">
-                    {metrics.hardAccuracy}% ({progress.hard_questions_correct}/{progress.hard_questions_attempted})
+                  <div className="text-center p-3 bg-amber-50 rounded-lg border border-amber-100">
+                    <div className="text-lg font-bold text-amber-700">{metrics.mediumAccuracy}%</div>
+                    <div className="text-xs text-slate-600 mb-1">Medium Questions</div>
+                    <div className="text-xs text-slate-500">
+                      {progress.medium_questions_correct}/{progress.medium_questions_attempted}
+                    </div>
+                  </div>
+                  <div className="text-center p-3 bg-red-50 rounded-lg border border-red-100">
+                    <div className="text-lg font-bold text-red-700">{metrics.hardAccuracy}%</div>
+                    <div className="text-xs text-slate-600 mb-1">Hard Questions</div>
+                    <div className="text-xs text-slate-500">
+                      {progress.hard_questions_correct}/{progress.hard_questions_attempted}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Strengths & Weaknesses */}
-              {(metrics.strengths.length > 0 || metrics.weaknesses.length > 0) && (
-                <div className="space-y-2">
-                  {metrics.strengths.length > 0 && (
-                    <div className="flex items-start gap-2">
-                      <div className="text-xs text-green-600 font-medium">?? Strengths:</div>
-                      <div className="text-xs text-green-600">{metrics.strengths.join(', ')}</div>
+              {/* Enhanced Insights */}
+              <div className="space-y-2">
+                {metrics.strengths.length > 0 && (
+                  <div className="flex items-start gap-2 p-3 bg-green-50 rounded-lg border border-green-100">
+                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <div className="text-sm font-medium text-green-900">You&apos;re doing well:</div>
+                      <div className="text-sm text-green-700">{metrics.strengths.join(', ')}</div>
                     </div>
-                  )}
-                  {metrics.weaknesses.length > 0 && (
-                    <div className="flex items-start gap-2">
-                      <div className="text-xs text-orange-600 font-medium">?? Focus Areas:</div>
-                      <div className="text-xs text-orange-600">{metrics.weaknesses.join(', ')}</div>
+                  </div>
+                )}
+                
+                {metrics.weaknesses.length > 0 && (
+                  <div className="flex items-start gap-2 p-3 bg-orange-50 rounded-lg border border-orange-100">
+                    <AlertCircle className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <div className="text-sm font-medium text-orange-900">Focus areas:</div>
+                      <div className="text-sm text-orange-700">{metrics.weaknesses.join(', ')}</div>
                     </div>
-                  )}
-                </div>
-              )}
-
-              {/* Activity Info */}
-              <div className="flex items-center gap-4 text-xs text-gray-500">
-                <div className="flex items-center gap-1">
-                  <BarChart3 className="h-3 w-3" />
-                  <span>{progress.questions_attempted} attempted</span>
-                </div>
-                {progress.last_practiced && (
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    <span>Last: {new Date(progress.last_practiced).toLocaleDateString()}</span>
                   </div>
                 )}
               </div>
+
+              {/* Activity Info */}
+              <div className="flex items-center gap-4 pt-2 border-t border-slate-100">
+                <div className="flex items-center gap-1 text-xs text-slate-500">
+                  <Clock className="h-3 w-3" />
+                  Last practiced: {progress.last_practiced ? new Date(progress.last_practiced).toLocaleDateString() : 'Never'}
+                </div>
+                <div className="flex items-center gap-1 text-xs text-slate-500">
+                  <Target className="h-3 w-3" />
+                  {progress.questions_attempted} attempts
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Target className="h-8 w-8 text-slate-400" />
+              </div>
+              <div className="text-slate-900 font-medium mb-1">Ready to start?</div>
+              <div className="text-sm text-slate-500">
+                Take your first assessment to see how you perform
+              </div>
             </div>
           )}
+        </div>
 
-          {/* Action Buttons */}
-          <div className="pt-2 border-t border-gray-100">
-            {getActionButtons()}
+        {/* 3. CALL TO ACTION SECTION - What You Should Do */}
+        <div className="bg-slate-50 px-6 py-4 border-t border-slate-100">
+          <div className="flex items-center gap-2 mb-3">
+            <Zap className="h-4 w-4 text-indigo-600" />
+            <span className="text-sm font-medium text-indigo-900 uppercase tracking-wide">
+              Recommended Action
+            </span>
           </div>
+          
+          {getActionButtons()}
         </div>
       </CardContent>
     </Card>
