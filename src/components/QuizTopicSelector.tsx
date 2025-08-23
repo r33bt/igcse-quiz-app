@@ -71,7 +71,6 @@ interface PerformanceAnalysis {
 }
 
 export default function QuizTopicSelector() {
-  console.log("?? TEST: QuizTopicSelector component is loading!")
   const [topics, setTopics] = useState<IGCSETopic[]>([])
   const [subtopics, setSubtopics] = useState<Record<string, IGCSESubtopic[]>>({})
   const [progress, setProgress] = useState<Record<string, SubtopicProgress>>({})
@@ -91,7 +90,7 @@ export default function QuizTopicSelector() {
       // Load topics
       const { data: topicsData, error: topicsError } = await supabase
         .from('igcse_topics')
-        .from("user_subtopic_progress").select("*")
+        .select('*')
         .order('topic_number')
 
       if (topicsError) throw topicsError
@@ -109,7 +108,7 @@ export default function QuizTopicSelector() {
       // Load subtopics grouped by topic
       const { data: subtopicsData, error: subtopicsError } = await supabase
         .from('igcse_subtopics')
-        .from("user_subtopic_progress").select("*")
+        .select('*')
         .eq('difficulty_level', selectedPath)
         .order('subtopic_code')
 
@@ -146,15 +145,15 @@ export default function QuizTopicSelector() {
     try {
     // Fix: Use auth state change listener instead of getUser()
     const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user || { id: "a1b2c3d4-e5f6-7890-1234-567890abcdef" }
+    const user = session?.user
     console.log('?? DEBUG: Current user:', user?.id) // TEMP DEBUG
       if (!user) return
 
       const { data: progressData, error } = await supabase
         .from('user_subtopic_progress')
-        .from("user_subtopic_progress").select("*")
+        .select('*')
         .eq('user_id', user.id)
-        // .in("subtopic_id", subtopicIds) // TEMP: Remove filter to test
+        .in('subtopic_id', subtopicIds)
 
     console.log('?? DEBUG: Progress data loaded:', progressData) // TEMP DEBUG
     console.log('?? DEBUG: Any errors:', error) // TEMP DEBUG
@@ -645,5 +644,3 @@ export default function QuizTopicSelector() {
     </div>
   )
 }
-
-
