@@ -71,6 +71,7 @@ interface PerformanceAnalysis {
 }
 
 export default function QuizTopicSelector() {
+  console.log("?? TEST: QuizTopicSelector component is loading!")
   const [topics, setTopics] = useState<IGCSETopic[]>([])
   const [subtopics, setSubtopics] = useState<Record<string, IGCSESubtopic[]>>({})
   const [progress, setProgress] = useState<Record<string, SubtopicProgress>>({})
