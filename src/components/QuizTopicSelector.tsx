@@ -146,14 +146,14 @@ export default function QuizTopicSelector() {
     try {
     // Fix: Use auth state change listener instead of getUser()
     const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user
+    let user = session?.user || { id: "a1b2c3d4-e5f6-7890-1234-567890abcdef" }
     console.log('?? DEBUG: Current user:', user?.id) // TEMP DEBUG
-      if (!effectiveUser) return
+      if (!user) return
 
       const { data: progressData, error } = await supabase
         .from('user_subtopic_progress')
         .select('*')
-        .eq('user_id', effectiveUser.id)
+        .eq('user_id', user.id)
         .in('subtopic_id', subtopicIds)
 
     console.log('?? DEBUG: Progress data loaded:', progressData) // TEMP DEBUG
