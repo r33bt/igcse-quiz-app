@@ -148,12 +148,12 @@ export default function QuizTopicSelector() {
     const { data: { session } } = await supabase.auth.getSession()
     const user = session?.user
     console.log('?? DEBUG: Current user:', user?.id) // TEMP DEBUG
-      if (!user) return
+      if (!effectiveUser) return
 
       const { data: progressData, error } = await supabase
         .from('user_subtopic_progress')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', effectiveUser.id)
         .in('subtopic_id', subtopicIds)
 
     console.log('?? DEBUG: Progress data loaded:', progressData) // TEMP DEBUG
