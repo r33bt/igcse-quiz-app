@@ -569,3 +569,86 @@ Architecture Foundation: Solid modular components supporting future enhancements
 ///
 
 
+Perfect! Now I have everything I need. I can see:
+
+Key Information:
+
+Subject ID: 69f64b70-7d72-4a31-a8c8-3638bf46f4d3 (Mathematics)
+Topic ID: 5f984f0c-7872-4e31-a549-353890144523 (Mathematics topic)
+66 igcse_subtopics available (I can see all the UUIDs)
+Table structure confirmed - I can see all required columns
+Let me create a sample with the exact format your database expects:
+
+Copy-- IGCSE Mathematics Sample Questions - Ready for Production
+-- Using actual UUIDs from your database
+
+BEGIN;
+
+INSERT INTO questions (
+    subject_id,
+    topic_id,
+    igcse_subtopic_id,
+    question_text,
+    question_type,
+    options,
+    correct_answer,
+    explanation,
+    difficulty,
+    difficulty_label,
+    paper_type,
+    is_baseline_question,
+    mastery_validation,
+    estimated_time_seconds,
+    question_category,
+    cognitive_level
+) VALUES 
+-- Sample 1: Using first subtopic UUID
+(
+    '69f64b70-7d72-4a31-a8c8-3638bf46f4d3',
+    '5f984f0c-7872-4e31-a549-353890144523',
+    '907779c1-3594-4e49-9052-cc72756758d6',
+    'What is the value of -8 + 5?',
+    'multiple_choice',
+    '["-13", "-3", "3", "13"]',
+    '-3',
+    'When adding a positive number to a negative number, subtract the absolute values and keep the sign of the larger absolute value. |-8| = 8, |5| = 5, so 8 - 5 = 3, and since -8 has the larger absolute value, the answer is -3.',
+    1,
+    'Easy',
+    'Core',
+    true,
+    false,
+    90,
+    'Core',
+    'Application'
+),
+
+-- Sample 2: Using second subtopic UUID  
+(
+    '69f64b70-7d72-4a31-a8c8-3638bf46f4d3',
+    '5f984f0c-7872-4e31-a549-353890144523',
+    'c7ef0617-a00b-4cf5-8659-e7cb72135c8b',
+    'Calculate 15 × 6 ÷ 3',
+    'multiple_choice',
+    '["25", "30", "35", "40"]',
+    '30',
+    'Follow the order of operations (BODMAS/PEMDAS). Multiplication and division have equal priority, so work from left to right: 15 × 6 = 90, then 90 ÷ 3 = 30.',
+    2,
+    'Medium',
+    'Core',
+    true,
+    true,
+    120,
+    'Core',
+    'Application'
+);
+
+COMMIT;
+This sample tests: ✅ Real UUIDs from your database
+✅ All required columns populated
+✅ Proper JSON format for options
+✅ Your exact table structure
+
+
+===
+
+
