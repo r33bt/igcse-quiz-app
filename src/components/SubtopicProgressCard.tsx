@@ -1,10 +1,10 @@
-﻿"use client"
+"use client"
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Card, CardContent } from '@/components/ui/card'
-import { Target, BookOpen, Trophy, CheckCircle2, RefreshCw, BarChart3, Clock, TrendingUp } from 'lucide-react'
+import { Target, BookOpen, Trophy, CheckCircle2, RefreshCw, BarChart3, Clock } from 'lucide-react'
 import Link from 'next/link'
 
 type MasteryLevel = 'Unassessed' | 'Developing' | 'Approaching' | 'Proficient' | 'Mastery'
@@ -211,7 +211,7 @@ export default function SubtopicProgressCard({
               </Button>
             </Link>
             <p className="text-xs text-gray-500 text-center">
-              You're close! Master the challenging concepts
+              You are close! Master the challenging concepts
             </p>
           </div>
         )
@@ -237,7 +237,7 @@ export default function SubtopicProgressCard({
             <div className="flex items-center justify-center gap-2 p-2 bg-green-50 rounded-lg border border-green-200">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
               <Badge className="bg-green-100 text-green-800 border-green-300">
-                ✅ Mastered
+                ? Mastered
               </Badge>
             </div>
             <Link href={`/quiz/review/${subtopic.id}`}>
@@ -324,13 +324,13 @@ export default function SubtopicProgressCard({
                 <div className="space-y-2">
                   {metrics.strengths.length > 0 && (
                     <div className="flex items-start gap-2">
-                      <div className="text-xs text-green-600 font-medium">💡 Strengths:</div>
+                      <div className="text-xs text-green-600 font-medium">?? Strengths:</div>
                       <div className="text-xs text-green-600">{metrics.strengths.join(', ')}</div>
                     </div>
                   )}
                   {metrics.weaknesses.length > 0 && (
                     <div className="flex items-start gap-2">
-                      <div className="text-xs text-orange-600 font-medium">⚠️ Focus Areas:</div>
+                      <div className="text-xs text-orange-600 font-medium">?? Focus Areas:</div>
                       <div className="text-xs text-orange-600">{metrics.weaknesses.join(', ')}</div>
                     </div>
                   )}
