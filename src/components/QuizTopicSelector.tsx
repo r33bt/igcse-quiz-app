@@ -1,5 +1,9 @@
 ﻿"use client"
 
+// Update the imports at the top of QuizTopicSelector.tsx
+import { MasteryCalculator, type UserProgress, type MasteryLevel } from '@/lib/mastery-calculator'
+import { AssessmentEngine } from '@/lib/assessment-engine'
+
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
