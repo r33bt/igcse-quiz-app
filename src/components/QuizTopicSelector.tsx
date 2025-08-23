@@ -154,7 +154,7 @@ export default function QuizTopicSelector() {
         .from('user_subtopic_progress')
         .select('*')
         .eq('user_id', user.id)
-        .in('subtopic_id', subtopicIds)
+        // .in("subtopic_id", subtopicIds) // TEMP: Remove filter to test
 
     console.log('?? DEBUG: Progress data loaded:', progressData) // TEMP DEBUG
     console.log('?? DEBUG: Any errors:', error) // TEMP DEBUG
