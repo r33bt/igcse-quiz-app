@@ -91,7 +91,7 @@ export default function QuizTopicSelector() {
       // Load topics
       const { data: topicsData, error: topicsError } = await supabase
         .from('igcse_topics')
-        .select('*')
+        .from("user_subtopic_progress").select("*")
         .order('topic_number')
 
       if (topicsError) throw topicsError
@@ -109,7 +109,7 @@ export default function QuizTopicSelector() {
       // Load subtopics grouped by topic
       const { data: subtopicsData, error: subtopicsError } = await supabase
         .from('igcse_subtopics')
-        .select('*')
+        .from("user_subtopic_progress").select("*")
         .eq('difficulty_level', selectedPath)
         .order('subtopic_code')
 
@@ -152,7 +152,7 @@ export default function QuizTopicSelector() {
 
       const { data: progressData, error } = await supabase
         .from('user_subtopic_progress')
-        .select('*')
+        .from("user_subtopic_progress").select("*")
         .eq('user_id', user.id)
         // .in("subtopic_id", subtopicIds) // TEMP: Remove filter to test
 
