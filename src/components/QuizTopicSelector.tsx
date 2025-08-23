@@ -152,7 +152,7 @@ export default function QuizTopicSelector() {
       const { data: progressData, error } = await supabase
         .from('user_subtopic_progress')
         .select('*')
-        .eq('user_id', user.id)
+      .eq('user_id', userId)
         .in('subtopic_id', subtopicIds)
 
     console.log('?? DEBUG: Progress data loaded:', progressData) // TEMP DEBUG
