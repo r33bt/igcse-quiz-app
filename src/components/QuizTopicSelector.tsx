@@ -144,6 +144,7 @@ export default function QuizTopicSelector() {
   const loadUserProgress = async (subtopicIds: string[]) => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
+    console.log('?? DEBUG: Current user:', user?.id) // TEMP DEBUG
       if (!user) return
 
       const { data: progressData, error } = await supabase
@@ -151,6 +152,9 @@ export default function QuizTopicSelector() {
         .select('*')
         .eq('user_id', user.id)
         .in('subtopic_id', subtopicIds)
+
+    console.log('?? DEBUG: Progress data loaded:', progressData) // TEMP DEBUG
+    console.log('?? DEBUG: Any errors:', error) // TEMP DEBUG
 
       if (error) throw error
 
