@@ -1,9 +1,7 @@
-﻿"use client"
-
+"use client"
 // Update the imports at the top of QuizTopicSelector.tsx
 import { MasteryCalculator, type UserProgress, type MasteryLevel } from '@/lib/mastery-calculator'
 import { AssessmentEngine } from '@/lib/assessment-engine'
-
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -12,14 +10,11 @@ import { Progress } from '@/components/ui/progress'
 import { ChevronDown, ChevronRight, Target, BookOpen, Play, BarChart3, Trophy, Clock, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
-
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
 // Inline the types to avoid import issues for now
 type MasteryLevel = 'Unassessed' | 'Developing' | 'Approaching' | 'Proficient' | 'Mastery'
-
 interface IGCSETopic {
   id: string
   topic_number: number
@@ -27,7 +22,6 @@ interface IGCSETopic {
   description: string
   color: string
 }
-
 interface IGCSESubtopic {
   id: string
   topic_id: string
@@ -36,7 +30,6 @@ interface IGCSESubtopic {
   description: string
   difficulty_level: string
 }
-
 interface SubtopicProgress {
   subtopic_id: string
   user_id: string
@@ -56,7 +49,6 @@ interface SubtopicProgress {
   mastery_percentage: number
   recommended_next_action: string
 }
-
 interface EnhancedSubtopic extends IGCSESubtopic {
   progress?: SubtopicProgress
   masteryData?: {
@@ -72,12 +64,10 @@ interface EnhancedSubtopic extends IGCSESubtopic {
     masteryReady: number
   }
 }
-
 interface QuizTopicSelectorProps {
   onTopicSelect: (topicId: string, subtopicId?: string) => void
 }
-
-export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorProps) {
+export default function QuizTopicSelector() {
   const [topics, setTopics] = useState<IGCSETopic[]>([])
   const [coreSubtopics, setCoreSubtopics] = useState<EnhancedSubtopic[]>([])
   const [extendedSubtopics, setExtendedSubtopics] = useState<EnhancedSubtopic[]>([])
@@ -87,41 +77,32 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
   const [loading, setLoading] = useState(true)
   const [userPath, setUserPath] = useState<'Core' | 'Extended'>('Core')
   const [error, setError] = useState<string | null>(null)
-
   useEffect(() => {
     fetchTopicsAndProgress()
   }, [])
-
   const fetchTopicsAndProgress = async () => {
     try {
       setLoading(true)
       setError(null)
-
       // Fetch topics
       const { data: topicsData, error: topicsError } = await supabase
         .from('igcse_topics')
         .select('*')
         .order('topic_number', { ascending: true })
-
       if (topicsError) throw topicsError
-
       // Fetch subtopics
       const { data: coreData, error: coreError } = await supabase
         .from('igcse_subtopics')
         .select('*')
         .eq('difficulty_level', 'Core')
         .order('subtopic_code', { ascending: true })
-
       if (coreError) throw coreError
-
       const { data: extendedData, error: extendedError } = await supabase
         .from('igcse_subtopics')
         .select('*')
         .eq('difficulty_level', 'Extended')
         .order('subtopic_code', { ascending: true })
-
       if (extendedError) throw extendedError
-
       // Get question availability for each subtopic
       const enhancedCore = await Promise.all(
         (coreData || []).map(async (subtopic) => {
@@ -130,48 +111,40 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
             .from('questions')
             .select('id', { count: 'exact' })
             .eq('igcse_subtopic_id', subtopic.id)
-
           const questionAvailability = {
             total: questionCount?.length || 0,
             baselineReady: questionCount?.length || 0,
             masteryReady: questionCount?.length || 0
           }
-
           return {
             ...subtopic,
             questionAvailability
           } as EnhancedSubtopic
         })
       )
-
       const enhancedExtended = await Promise.all(
         (extendedData || []).map(async (subtopic) => {
           const { data: questionCount, error: questionError } = await supabase
             .from('questions')
             .select('id', { count: 'exact' })
             .eq('igcse_subtopic_id', subtopic.id)
-
           const questionAvailability = {
             total: questionCount?.length || 0,
             baselineReady: questionCount?.length || 0,
             masteryReady: questionCount?.length || 0
           }
-
           return {
             ...subtopic,
             questionAvailability
           } as EnhancedSubtopic
         })
       )
-
       setTopics(topicsData || [])
       setCoreSubtopics(enhancedCore)
       setExtendedSubtopics(enhancedExtended)
-
       console.log('Loaded topics:', topicsData?.length)
       console.log('Loaded core subtopics:', enhancedCore.length)
       console.log('Loaded extended subtopics:', enhancedExtended.length)
-
     } catch (error) {
       console.error('Error fetching data:', error)
       setError(error instanceof Error ? error.message : 'Failed to load topics')
@@ -179,16 +152,13 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
       setLoading(false)
     }
   }
-
   const getSubtopicsForTopic = (topicId: string, level: 'Core' | 'Extended' = 'Core') => {
     const subtopics = level === 'Core' ? coreSubtopics : extendedSubtopics
     return subtopics.filter(subtopic => subtopic.topic_id === topicId)
   }
-
   const handleSubtopicAction = async (subtopic: EnhancedSubtopic, action: string) => {
     try {
       console.log(`Starting ${action} for subtopic:`, subtopic.title)
-      
       // For now, just show an alert - we'll implement actual quiz generation later
       if (action === 'assessment') {
         alert(`Assessment quiz for ${subtopic.title} - Coming Soon!`)
@@ -197,13 +167,11 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
       } else if (action === 'mastery') {
         alert(`Mastery quiz for ${subtopic.title} - Coming Soon!`)
       }
-      
       onTopicSelect(subtopic.topic_id, subtopic.id)
     } catch (error) {
       console.error('Error with subtopic action:', error)
     }
   }
-
   const getMasteryColor = (level: MasteryLevel) => {
     switch (level) {
       case 'Mastery': return 'text-green-600 bg-green-100 border-green-200'
@@ -213,7 +181,6 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
       default: return 'text-gray-600 bg-gray-100 border-gray-200'
     }
   }
-
   const getMasteryIcon = (level: MasteryLevel) => {
     switch (level) {
       case 'Mastery': return <Trophy className="h-4 w-4" />
@@ -223,11 +190,9 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
       default: return <Play className="h-4 w-4" />
     }
   }
-
   const renderActionButton = (subtopic: EnhancedSubtopic) => {
     const masteryLevel: MasteryLevel = 'Unassessed' // Default for now
     const questionCount = subtopic.questionAvailability?.total || 0
-
     if (questionCount === 0) {
       return (
         <Badge variant="outline" className="text-xs text-gray-500">
@@ -235,7 +200,6 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
         </Badge>
       )
     }
-
     // For now, just show "Take Assessment" for all subtopics
     return (
       <Button
@@ -248,7 +212,6 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
       </Button>
     )
   }
-
   if (loading) {
     return (
       <div className="text-center py-8">
@@ -257,7 +220,6 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
       </div>
     )
   }
-
   if (error) {
     return (
       <div className="text-center py-8">
@@ -274,11 +236,9 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
       </div>
     )
   }
-
   const getTotalSubtopics = (level: 'Core' | 'Extended') => {
     return level === 'Core' ? coreSubtopics.length : extendedSubtopics.length
   }
-
   return (
     <div className="space-y-6">
       {/* Header Section */}
@@ -289,7 +249,6 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
         <p className="text-gray-600 mb-6">
           Select a topic or specific subtopic to practice. All questions are aligned with Cambridge IGCSE 0580 syllabus.
         </p>
-
         {/* Statistics */}
         <div className="flex justify-center space-x-8 mb-6">
           <div className="text-center">
@@ -305,7 +264,6 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
             <span className="text-sm font-medium">{getTotalSubtopics('Extended')}+ Extended Subtopics</span>
           </div>
         </div>
-
         {/* Navigation Link to Syllabus */}
         <div className="mb-6">
           <Link href="/syllabus">
@@ -316,14 +274,12 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
           </Link>
         </div>
       </div>
-
       {/* Topics Grid */}
       <div className="space-y-4">
         {topics.map((topic) => {
           const coreCount = getSubtopicsForTopic(topic.id, 'Core').length
           const extendedCount = getSubtopicsForTopic(topic.id, 'Extended').length
           const isExpanded = expandedTopic === topic.id
-
           return (
             <Card 
               key={topic.id} 
@@ -366,7 +322,6 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
                   </div>
                 </div>
               </CardHeader>
-
               {isExpanded && (
                 <CardContent className="pt-0">
                   {/* Core Subtopics */}
@@ -398,7 +353,6 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
                       </div>
                     </div>
                   )}
-
                   {/* Extended Subtopics */}
                   {extendedCount > 0 && userPath === 'Extended' && (
                     <div>
