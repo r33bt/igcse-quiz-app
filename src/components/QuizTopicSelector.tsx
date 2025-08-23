@@ -7,13 +7,14 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { ChevronDown, ChevronRight, Target, BookOpen, Play, BarChart3, Trophy, Clock, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
-import { MasteryCalculator, type UserProgress, type MasteryLevel } from '../lib/mastery-calculator'
-import { AssessmentEngine } from '../lib/assessment-engine'
 import Link from 'next/link'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Inline the types to avoid import issues for now
+type MasteryLevel = 'Unassessed' | 'Developing' | 'Approaching' | 'Proficient' | 'Mastery'
 
 interface IGCSETopic {
   id: string
@@ -76,7 +77,6 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
   const [topics, setTopics] = useState<IGCSETopic[]>([])
   const [coreSubtopics, setCoreSubtopics] = useState<EnhancedSubtopic[]>([])
   const [extendedSubtopics, setExtendedSubtopics] = useState<EnhancedSubtopic[]>([])
-  const [userProgress, setUserProgress] = useState<Map<string, SubtopicProgress>>(new Map())
   const [expandedTopic, setExpandedTopic] = useState<string | null>(null)
   const [selectedTopic, setSelectedTopic] = useState<string>('')
   const [selectedSubtopic, setSelectedSubtopic] = useState<string>('')
@@ -92,13 +92,6 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
     try {
       setLoading(true)
       setError(null)
-
-      // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      if (userError || !user) {
-        console.log('User not authenticated, using guest mode')
-        // Continue without user-specific data for now
-      }
 
       // Fetch topics
       const { data: topicsData, error: topicsError } = await supabase
@@ -125,52 +118,23 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
 
       if (extendedError) throw extendedError
 
-      // Fetch user progress (if authenticated)
-      let progressData: SubtopicProgress[] = []
-      let userPreferences: { chosen_path?: string } | null = null
-
-      if (user) {
-        const { data: prefData } = await supabase
-          .from('user_learning_preferences')
-          .select('chosen_path')
-          .eq('user_id', user.id)
-          .single()
-
-        userPreferences = prefData
-
-        const { data: progressResult } = await supabase
-          .from('user_subtopic_progress')
-          .select('*')
-          .eq('user_id', user.id)
-
-        progressData = progressResult || []
-      }
-
-      if (userPreferences?.chosen_path) {
-        setUserPath(userPreferences.chosen_path as 'Core' | 'Extended')
-      }
-
-      // Create progress map
-      const progressMap = new Map<string, SubtopicProgress>()
-      progressData.forEach(p => {
-        progressMap.set(p.subtopic_id, p as SubtopicProgress)
-      })
-
-      // Enhance subtopics with progress data
+      // Get question availability for each subtopic
       const enhancedCore = await Promise.all(
         (coreData || []).map(async (subtopic) => {
-          const progress = progressMap.get(subtopic.id)
-          const questionAvailability = await AssessmentEngine.getQuestionAvailability(subtopic.id)
-          
-          let masteryData
-          if (progress) {
-            masteryData = MasteryCalculator.calculateSubtopicMastery(progress as UserProgress, userPath)
+          // Get question count for this subtopic
+          const { data: questionCount, error: questionError } = await supabase
+            .from('questions')
+            .select('id', { count: 'exact' })
+            .eq('igcse_subtopic_id', subtopic.id)
+
+          const questionAvailability = {
+            total: questionCount?.length || 0,
+            baselineReady: questionCount?.length || 0,
+            masteryReady: questionCount?.length || 0
           }
 
           return {
             ...subtopic,
-            progress,
-            masteryData,
             questionAvailability
           } as EnhancedSubtopic
         })
@@ -178,18 +142,19 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
 
       const enhancedExtended = await Promise.all(
         (extendedData || []).map(async (subtopic) => {
-          const progress = progressMap.get(subtopic.id)
-          const questionAvailability = await AssessmentEngine.getQuestionAvailability(subtopic.id)
-          
-          let masteryData
-          if (progress) {
-            masteryData = MasteryCalculator.calculateSubtopicMastery(progress as UserProgress, userPath)
+          const { data: questionCount, error: questionError } = await supabase
+            .from('questions')
+            .select('id', { count: 'exact' })
+            .eq('igcse_subtopic_id', subtopic.id)
+
+          const questionAvailability = {
+            total: questionCount?.length || 0,
+            baselineReady: questionCount?.length || 0,
+            masteryReady: questionCount?.length || 0
           }
 
           return {
             ...subtopic,
-            progress,
-            masteryData,
             questionAvailability
           } as EnhancedSubtopic
         })
@@ -198,7 +163,6 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
       setTopics(topicsData || [])
       setCoreSubtopics(enhancedCore)
       setExtendedSubtopics(enhancedExtended)
-      setUserProgress(progressMap)
 
       console.log('Loaded topics:', topicsData?.length)
       console.log('Loaded core subtopics:', enhancedCore.length)
@@ -217,43 +181,22 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
     return subtopics.filter(subtopic => subtopic.topic_id === topicId)
   }
 
-  const getTopicMastery = (topicId: string) => {
-    const coreProgress = getSubtopicsForTopic(topicId, 'Core')
-      .map(s => s.progress)
-      .filter(Boolean) as UserProgress[]
-    
-    const extendedProgress = userPath === 'Extended' 
-      ? getSubtopicsForTopic(topicId, 'Extended')
-          .map(s => s.progress)
-          .filter(Boolean) as UserProgress[]
-      : []
-
-    const allProgress = [...coreProgress, ...extendedProgress]
-    return MasteryCalculator.calculateTopicMastery(allProgress)
-  }
-
   const handleSubtopicAction = async (subtopic: EnhancedSubtopic, action: string) => {
     try {
       console.log(`Starting ${action} for subtopic:`, subtopic.title)
       
+      // For now, just show an alert - we'll implement actual quiz generation later
       if (action === 'assessment') {
-        const quiz = await AssessmentEngine.generateBaselineQuiz(subtopic.id, userPath)
-        console.log('Generated assessment quiz:', quiz)
-        alert(`Assessment quiz generated for ${subtopic.title} with ${quiz.questions.length} questions!`)
+        alert(`Assessment quiz for ${subtopic.title} - Coming Soon!`)
       } else if (action === 'practice') {
-        const quiz = await AssessmentEngine.generatePracticeQuiz(subtopic.id, userPath)
-        console.log('Generated practice quiz:', quiz)
-        alert(`Practice quiz generated for ${subtopic.title} with ${quiz.questions.length} questions!`)
+        alert(`Practice quiz for ${subtopic.title} - Coming Soon!`)
       } else if (action === 'mastery') {
-        const quiz = await AssessmentEngine.generateMasteryQuiz(subtopic.id, userPath)
-        console.log('Generated mastery quiz:', quiz)
-        alert(`Mastery quiz generated for ${subtopic.title} with ${quiz.questions.length} questions!`)
+        alert(`Mastery quiz for ${subtopic.title} - Coming Soon!`)
       }
       
       onTopicSelect(subtopic.topic_id, subtopic.id)
     } catch (error) {
-      console.error('Error generating quiz:', error)
-      alert('Error generating quiz: ' + (error instanceof Error ? error.message : 'Unknown error'))
+      console.error('Error with subtopic action:', error)
     }
   }
 
@@ -278,8 +221,8 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
   }
 
   const renderActionButton = (subtopic: EnhancedSubtopic) => {
-    const masteryLevel = subtopic.masteryData?.level || 'Unassessed'
-    const questionCount = subtopic.questionAvailability?.baselineReady || 0
+    const masteryLevel: MasteryLevel = 'Unassessed' // Default for now
+    const questionCount = subtopic.questionAvailability?.total || 0
 
     if (questionCount === 0) {
       return (
@@ -289,107 +232,17 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
       )
     }
 
-    switch (masteryLevel) {
-      case 'Unassessed':
-        return (
-          <Button
-            size="sm"
-            onClick={() => handleSubtopicAction(subtopic, 'assessment')}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Target className="h-4 w-4 mr-1" />
-            Take Assessment
-          </Button>
-        )
-      
-      case 'Developing':
-        return (
-          <div className="flex space-x-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleSubtopicAction(subtopic, 'practice')}
-              className="border-orange-300 text-orange-700 hover:bg-orange-50"
-            >
-              <BarChart3 className="h-4 w-4 mr-1" />
-              Focus Practice
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => handleSubtopicAction(subtopic, 'assessment')}
-              className="text-gray-600 hover:bg-gray-100"
-            >
-              Retake Assessment
-            </Button>
-          </div>
-        )
-      
-      case 'Approaching':
-        return (
-          <Button
-            size="sm"
-            onClick={() => handleSubtopicAction(subtopic, 'practice')}
-            className="bg-yellow-500 hover:bg-yellow-600 text-white"
-          >
-            <Target className="h-4 w-4 mr-1" />
-            Practice Hard Questions
-          </Button>
-        )
-      
-      case 'Proficient':
-        return (
-          <div className="flex space-x-2">
-            <Button
-              size="sm"
-              onClick={() => handleSubtopicAction(subtopic, 'mastery')}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              <Trophy className="h-4 w-4 mr-1" />
-              Attempt Mastery
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleSubtopicAction(subtopic, 'practice')}
-              className="border-blue-300 text-blue-700 hover:bg-blue-50"
-            >
-              Continue Practice
-            </Button>
-          </div>
-        )
-      
-      case 'Mastery':
-        return (
-          <div className="flex items-center space-x-2">
-            <Badge className="bg-green-100 text-green-700 border-green-200">
-              <Trophy className="h-3 w-3 mr-1" />
-              Mastered
-            </Badge>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => handleSubtopicAction(subtopic, 'practice')}
-              className="text-gray-600 hover:bg-gray-100"
-            >
-              <Clock className="h-4 w-4 mr-1" />
-              Review
-            </Button>
-          </div>
-        )
-      
-      default:
-        return (
-          <Button
-            size="sm"
-            onClick={() => handleSubtopicAction(subtopic, 'assessment')}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Target className="h-4 w-4 mr-1" />
-            Start Learning
-          </Button>
-        )
-    }
+    // For now, just show "Take Assessment" for all subtopics
+    return (
+      <Button
+        size="sm"
+        onClick={() => handleSubtopicAction(subtopic, 'assessment')}
+        className="bg-blue-600 hover:bg-blue-700 text-white"
+      >
+        <Target className="h-4 w-4 mr-1" />
+        Take Assessment ({questionCount}Q)
+      </Button>
+    )
   }
 
   if (loading) {
@@ -466,7 +319,6 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
           const coreCount = getSubtopicsForTopic(topic.id, 'Core').length
           const extendedCount = getSubtopicsForTopic(topic.id, 'Extended').length
           const isExpanded = expandedTopic === topic.id
-          const topicMastery = getTopicMastery(topic.id)
 
           return (
             <Card 
@@ -491,17 +343,6 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
                       <CardDescription className="text-sm">
                         {topic.description}
                       </CardDescription>
-                      {topicMastery.totalCount > 0 && (
-                        <div className="flex items-center space-x-2 mt-2">
-                          <Progress 
-                            value={topicMastery.overallMastery} 
-                            className="flex-1 h-2"
-                          />
-                          <span className="text-sm text-gray-600">
-                            {topicMastery.masteredCount}/{topicMastery.totalCount} mastered
-                          </span>
-                        </div>
-                      )}
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -544,28 +385,10 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
                                 <span className="font-medium text-gray-900">
                                   {subtopic.title}
                                 </span>
-                                {subtopic.masteryData && (
-                                  <Badge 
-                                    className={`text-xs ${getMasteryColor(subtopic.masteryData.level)}`}
-                                  >
-                                    {getMasteryIcon(subtopic.masteryData.level)}
-                                    <span className="ml-1">{subtopic.masteryData.level}</span>
-                                  </Badge>
-                                )}
                               </div>
                               {renderActionButton(subtopic)}
                             </div>
-                            <p className="text-sm text-gray-600 mb-2">{subtopic.description}</p>
-                            
-                            {subtopic.progress && (
-                              <div className="flex items-center space-x-4 text-xs text-gray-500">
-                                <span>{subtopic.progress.core_questions_attempted} attempted</span>
-                                <span>{subtopic.progress.core_questions_correct} correct</span>
-                                {subtopic.masteryData && (
-                                  <span className="font-medium">{subtopic.masteryData.percentage}% mastery</span>
-                                )}
-                              </div>
-                            )}
+                            <p className="text-sm text-gray-600">{subtopic.description}</p>
                           </div>
                         ))}
                       </div>
@@ -593,28 +416,10 @@ export default function QuizTopicSelector({ onTopicSelect }: QuizTopicSelectorPr
                                   {subtopic.title}
                                 </span>
                                 <Badge variant="secondary" className="text-xs">Extended</Badge>
-                                {subtopic.masteryData && (
-                                  <Badge 
-                                    className={`text-xs ${getMasteryColor(subtopic.masteryData.level)}`}
-                                  >
-                                    {getMasteryIcon(subtopic.masteryData.level)}
-                                    <span className="ml-1">{subtopic.masteryData.level}</span>
-                                  </Badge>
-                                )}
                               </div>
                               {renderActionButton(subtopic)}
                             </div>
-                            <p className="text-sm text-gray-600 mb-2">{subtopic.description}</p>
-                            
-                            {subtopic.progress && (
-                              <div className="flex items-center space-x-4 text-xs text-gray-500">
-                                <span>{subtopic.progress.extended_questions_attempted} attempted</span>
-                                <span>{subtopic.progress.extended_questions_correct} correct</span>
-                                {subtopic.masteryData && (
-                                  <span className="font-medium">{subtopic.masteryData.percentage}% mastery</span>
-                                )}
-                              </div>
-                            )}
+                            <p className="text-sm text-gray-600">{subtopic.description}</p>
                           </div>
                         ))}
                       </div>
