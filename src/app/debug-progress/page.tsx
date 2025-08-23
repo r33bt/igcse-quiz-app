@@ -8,8 +8,15 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+interface TestResult {
+  test: string
+  data?: unknown
+  count?: number
+  error?: unknown
+}
+
 export default function DebugProgress() {
-  const [results, setResults] = useState<any[]>([])
+  const [results, setResults] = useState<TestResult[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -75,7 +82,7 @@ export default function DebugProgress() {
       
       <div className="mt-8 p-4 bg-yellow-100 rounded">
         <h3 className="font-bold">Expected Result:</h3>
-        <p>Direct user query should return 8 records with mastery levels like "Developing", "Proficient", "Mastery"</p>
+        <p>Direct user query should return 8 records with mastery levels like &quot;Developing&quot;, &quot;Proficient&quot;, &quot;Mastery&quot;</p>
       </div>
     </div>
   )
