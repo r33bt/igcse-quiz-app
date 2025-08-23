@@ -167,7 +167,7 @@ export default function QuizTopicSelector() {
       } else if (action === 'mastery') {
         alert(`Mastery quiz for ${subtopic.title} - Coming Soon!`)
       }
-      onTopicSelect(subtopic.topic_id, subtopic.id)
+      // Topic selected: subtopic.topic_id, subtopic.id
     } catch (error) {
       console.error('Error with subtopic action:', error)
     }
