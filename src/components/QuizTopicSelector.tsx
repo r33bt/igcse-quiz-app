@@ -202,3 +202,10 @@ export default function QuizTopicSelector() {
         }
       })
 
+
+
+      setProgress(progressMap)
+    } catch (error) {
+      console.error('Error loading user progress:', error)
+    }
+  }
