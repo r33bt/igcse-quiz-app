@@ -202,7 +202,17 @@ export default function QuizTopicSelector() {
         }
       })
 
-      setProgress(progressMap)
+      // TEMP: Hardcode progress data for testing
+const hardcodedProgress = {
+  "c7ef0617-a00b-4cf5-8659-e7cb72135c8b": { mastery_level: "Developing", mastery_percentage: 53 },
+  "87a82cb8-dee8-496d-b7ea-666b600366ab": { mastery_level: "Developing", mastery_percentage: 67 },
+  "7c5e9058-0c9c-404c-b51a-f178438c6575": { mastery_level: "Approaching", mastery_percentage: 73 },
+  "fbdae5d0-f84f-4c34-89d7-dc8d87c5db26": { mastery_level: "Proficient", mastery_percentage: 84 },
+  "c03ebd34-6c30-4a5d-a5b9-03758688f5b8": { mastery_level: "Proficient", mastery_percentage: 89 },
+  "f6c1b34a-af75-4a0f-9308-58ca5cb9693f": { mastery_level: "Mastery", mastery_percentage: 93 },
+  "90b59169-ad6f-457c-8405-6c7b5f464c4e": { mastery_level: "Mastery", mastery_percentage: 94 }
+}
+setProgress(hardcodedProgress)
     } catch (error) {
       console.error('Error loading user progress:', error)
     }
