@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { ChevronDown, ChevronRight, Target, BookOpen, Play, BarChart3, Trophy, CheckCircle2, RefreshCw, TrendingUp, Clock, Award } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
-import Link from 'next/link'
+// import Link from 'next/link' // Removed - not used in this component
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -354,7 +354,7 @@ export default function QuizTopicSelector() {
               Practice Hard Questions
             </Button>
             <p className="text-xs text-yellow-700">
-              You're close! Master the challenging concepts
+              You&apos;re close! Master the challenging concepts
             </p>
           </div>
         )
