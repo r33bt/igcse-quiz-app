@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
@@ -11,7 +11,7 @@ const supabase = createClient(
 interface TestResult {
   test: string
   data?: unknown
-  count?: number
+  count?: number | null
   error?: unknown
 }
 
@@ -27,7 +27,6 @@ export default function DebugProgress() {
     console.log("🔍 Starting progress debug tests...")
     
     try {
-      // Test 1: Direct query for our test user
       const { data: test1, error: error1 } = await supabase
         .from('user_subtopic_progress')
         .select('*')
@@ -35,7 +34,6 @@ export default function DebugProgress() {
       
       console.log("Test 1 - Direct user query:", { data: test1, error: error1 })
       
-      // Test 2: Count all records for test user
       const { count, error: error2 } = await supabase
         .from('user_subtopic_progress')
         .select('*', { count: 'exact', head: true })
@@ -43,7 +41,6 @@ export default function DebugProgress() {
       
       console.log("Test 2 - Count query:", { count, error: error2 })
       
-      // Test 3: Get all records (no filter)
       const { data: test3, error: error3 } = await supabase
         .from('user_subtopic_progress')
         .select('user_id, current_mastery_level, mastery_percentage')
@@ -53,7 +50,7 @@ export default function DebugProgress() {
       
       setResults([
         { test: 'Direct user query', data: test1, error: error1 },
-        { test: 'Count query', count, error: error2 },
+        { test: 'Count query', count: count, error: error2 },
         { test: 'All records sample', data: test3, error: error3 }
       ])
       
@@ -82,7 +79,7 @@ export default function DebugProgress() {
       
       <div className="mt-8 p-4 bg-yellow-100 rounded">
         <h3 className="font-bold">Expected Result:</h3>
-        <p>Direct user query should return 8 records with mastery levels like &quot;Developing&quot;, &quot;Proficient&quot;, &quot;Mastery&quot;</p>
+        <p>Direct user query should return 8 records with mastery levels</p>
       </div>
     </div>
   )
