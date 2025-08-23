@@ -171,6 +171,8 @@ export default function QuizTopicSelector() {
       .eq('user_id', user?.id || 'a8ff59f4-cc3b-4afe-a1f7-826c73cc27b7')
         .in('subtopic_id', subtopicIds)
 
+    console.log('?? DEBUG: Full query - user_id:', user.id, 'subtopic_ids:', subtopicIds)
+
     console.log('?? DEBUG: Progress data loaded:', progressData) // TEMP DEBUG
     console.log('?? DEBUG: Any errors:', error) // TEMP DEBUG
 
