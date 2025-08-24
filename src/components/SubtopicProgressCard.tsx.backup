@@ -58,64 +58,82 @@ interface SubtopicProgressCardProps {
   availability: QuestionAvailability
 }
 
-// Enhanced mastery calculation with complete 0-5 level system
+// Enhanced mastery calculation with fallback logic
 const calculateMasteryLevel = (progress: SubtopicProgress | undefined): { level: number, label: string, color: string, description: string } => {
-  // Complete level system (0-5) with proper descriptions
-  const levels = {
-    0: { 
-      level: 0,
+  const levelMap = {
+    'Unassessed': { 
+      level: 0, 
       label: 'Unassessed', 
       color: 'bg-gray-100 text-gray-700 border-gray-200',
       description: 'No baseline established yet. Take an assessment to see your current level.'
     },
-    1: { 
-      level: 1,
-      label: 'Beginning', 
-      color: 'bg-red-100 text-red-700 border-red-200',
-      description: 'Just starting to learn the basics. Focus on fundamental concepts.'
-    },
-    2: { 
-      level: 2,
+    'Developing': { 
+      level: 2, 
       label: 'Developing', 
       color: 'bg-orange-100 text-orange-700 border-orange-200',
       description: 'Building foundational understanding. Focus on core concepts and practice.'
     },
-    3: { 
-      level: 3,
+    'Approaching': { 
+      level: 3, 
       label: 'Approaching', 
       color: 'bg-yellow-100 text-yellow-700 border-yellow-200',
       description: 'Good progress made. Challenge yourself with harder questions.'
     },
-    4: { 
-      level: 4,
+    'Proficient': { 
+      level: 4, 
       label: 'Proficient', 
       color: 'bg-blue-100 text-blue-700 border-blue-200',
       description: 'Strong understanding demonstrated. Ready to attempt mastery.'
     },
-    5: { 
-      level: 5,
+    'Mastery': { 
+      level: 5, 
       label: 'Mastery', 
       color: 'bg-green-100 text-green-700 border-green-200',
       description: 'Excellent command of this topic. Maintain with periodic review.'
     }
   }
 
-  // No progress = Level 0
+  // If no progress data, return Unassessed
   if (!progress || progress.questions_attempted === 0) {
-    return levels[0]
+    return levelMap['Unassessed']
   }
 
-  // Calculate actual performance percentage from real data
-  const accuracy = Math.round((progress.questions_correct / progress.questions_attempted) * 100)
+  // Calculate actual performance percentage
+  const actualPercentage = Math.round((progress.questions_correct / progress.questions_attempted) * 100)
   
-  // Map accuracy to levels (complete 0-5 system)
-  if (accuracy >= 90) return levels[5]      // 90-100% = Level 5 Mastery
-  if (accuracy >= 75) return levels[4]      // 75-89% = Level 4 Proficient  
-  if (accuracy >= 60) return levels[3]      // 60-74% = Level 3 Approaching
-  if (accuracy >= 40) return levels[2]      // 40-59% = Level 2 Developing
-  if (accuracy >= 1) return levels[1]       // 1-39% = Level 1 Beginning
-  
-  return levels[0]  // 0% = Level 0 Unassessed
+  // If database has a valid mastery_level and it matches performance, use it
+  const dbMasteryLevel = progress.mastery_level
+  if (dbMasteryLevel && levelMap[dbMasteryLevel]) {
+    // Verify database level makes sense with actual performance
+    const dbLevel = levelMap[dbMasteryLevel]
+    const expectedRange = {
+      'Unassessed': [0, 0],
+      'Developing': [1, 59], 
+      'Approaching': [60, 74],
+      'Proficient': [75, 89],
+      'Mastery': [90, 100]
+    }
+    
+    const [min, max] = expectedRange[dbMasteryLevel] || [0, 0]
+    
+    // If DB level matches performance, use it
+    if (actualPercentage >= min && actualPercentage <= max) {
+      return dbLevel
+    }
+  }
+
+  // Recalculate level based on actual performance
+  if (actualPercentage >= 90) {
+    return levelMap['Mastery']
+  } else if (actualPercentage >= 75) {
+    return levelMap['Proficient'] 
+  } else if (actualPercentage >= 60) {
+    return levelMap['Approaching']
+  } else if (actualPercentage >= 1) {
+    return levelMap['Developing']
+  } else {
+    return levelMap['Unassessed']
+  }
 }
 
 // Core/Extended performance section
@@ -157,30 +175,26 @@ export default function SubtopicProgressCard({
 }: SubtopicProgressCardProps) {
   
   const masteryInfo = calculateMasteryLevel(progress) || {
+ 
     level: 0, 
     label: 'Unassessed', 
     color: 'bg-gray-100 text-gray-700 border-gray-200',
     description: 'No baseline established yet. Take an assessment to see your current level.'
   }
   
-  // Calculate Core/Extended breakdown using actual database values
+  // Calculate Core/Extended breakdown
   const getPerformanceData = () => {
-    if (!progress || progress.questions_attempted === 0) {
+    if (!progress) {
       return {
         core: { easy: [0, 0], medium: [0, 0], hard: [0, 0] },
         extended: { easy: [0, 0], medium: [0, 0], hard: [0, 0] }
       }
     }
 
-    // Use actual core data from database when available
-    const coreTotal = progress.core_questions_attempted || 0
-    const coreCorrect = progress.core_questions_correct || 0
-    
-    // If we have actual core data, use it; otherwise estimate
-    let coreRatio = 0.6 // Default 60% core
-    if (progress.questions_attempted > 0 && coreTotal > 0) {
-      coreRatio = coreTotal / progress.questions_attempted
-    }
+    // Estimate Core vs Extended split (60% core, 40% extended)
+    const coreRatio = progress.core_questions_attempted > 0 
+      ? progress.core_questions_attempted / progress.questions_attempted 
+      : 0.6
 
     const coreEasy = Math.round(progress.easy_questions_attempted * coreRatio)
     const coreMedium = Math.round(progress.medium_questions_attempted * coreRatio) 
@@ -190,17 +204,13 @@ export default function SubtopicProgressCard({
     const extendedMedium = progress.medium_questions_attempted - coreMedium
     const extendedHard = progress.hard_questions_attempted - coreHard
 
-    // Distribute correct answers proportionally
-    const coreAccuracy = coreTotal > 0 ? coreCorrect / coreTotal : progress.questions_correct / progress.questions_attempted
-    const extendedAccuracy = progress.questions_correct / progress.questions_attempted
+    const coreEasyCorrect = Math.round(progress.easy_questions_correct * coreRatio)
+    const coreMediumCorrect = Math.round(progress.medium_questions_correct * coreRatio)
+    const coreHardCorrect = Math.round(progress.hard_questions_correct * coreRatio)
 
-    const coreEasyCorrect = Math.round(coreEasy * coreAccuracy)
-    const coreMediumCorrect = Math.round(coreMedium * coreAccuracy)
-    const coreHardCorrect = Math.round(coreHard * coreAccuracy)
-
-    const extendedEasyCorrect = Math.round(extendedEasy * extendedAccuracy)
-    const extendedMediumCorrect = Math.round(extendedMedium * extendedAccuracy)
-    const extendedHardCorrect = Math.round(extendedHard * extendedAccuracy)
+    const extendedEasyCorrect = progress.easy_questions_correct - coreEasyCorrect
+    const extendedMediumCorrect = progress.medium_questions_correct - coreMediumCorrect
+    const extendedHardCorrect = progress.hard_questions_correct - coreHardCorrect
 
     return {
       core: {
@@ -230,32 +240,24 @@ export default function SubtopicProgressCard({
     const easyAccuracy = progress.easy_questions_attempted > 0 ? Math.round((progress.easy_questions_correct / progress.easy_questions_attempted) * 100) : 0
     const mediumAccuracy = progress.medium_questions_attempted > 0 ? Math.round((progress.medium_questions_correct / progress.medium_questions_attempted) * 100) : 0
     const hardAccuracy = progress.hard_questions_attempted > 0 ? Math.round((progress.hard_questions_correct / progress.hard_questions_attempted) * 100) : 0
-    const overallAccuracy = Math.round((progress.questions_correct / progress.questions_attempted) * 100)
 
     let analysis = ""
     const recommendations = []
 
-    // Analysis based on overall performance level
-    if (overallAccuracy >= 90) {
-      analysis = "Exceptional mastery demonstrated across all difficulty levels."
-    } else if (overallAccuracy >= 75) {
-      analysis = "Strong understanding with consistent high performance."
-      if (hardAccuracy < 70) {
-        recommendations.push("Focus on hard questions to achieve complete mastery.")
+    if (easyAccuracy >= 80 && mediumAccuracy >= 70) {
+      analysis = "Strong foundation established. Ready for more challenging questions."
+      if (hardAccuracy < 60) {
+        recommendations.push("Focus on hard questions to reach the next level.")
       }
-    } else if (overallAccuracy >= 60) {
-      analysis = "Good foundation with room for improvement on challenging problems."
-      recommendations.push("Practice medium and hard questions to advance to the next level.")
-    } else if (overallAccuracy >= 40) {
-      analysis = "Developing understanding of core concepts. Keep practicing!"
-      recommendations.push("Focus on easy and medium questions to build confidence.")
-    } else if (overallAccuracy >= 1) {
-      analysis = "Beginning stage - focus on fundamental understanding."
-      recommendations.push("Start with easy questions and basic concept review.")
+    } else if (easyAccuracy >= 70) {
+      analysis = "Good grasp of basics. Work on applying concepts in different contexts."
+      recommendations.push("Practice medium difficulty questions to improve understanding.")
+    } else {
+      analysis = "Focus on building fundamental understanding of core concepts."
+      recommendations.push("Review basic concepts and practice easy questions first.")
     }
 
-    // Additional recommendations based on question volume
-    if (progress.questions_attempted < 10) {
+    if (progress.questions_attempted < 20) {
       recommendations.push("Take more practice questions for better assessment accuracy.")
     }
 
@@ -264,7 +266,7 @@ export default function SubtopicProgressCard({
 
   const { analysis, recommendations } = getAnalysisAndRecommendations()
 
-  // Smart action buttons with complete level system
+  // Smart action buttons
   const getActionButton = () => {
     if (!availability || availability.total === 0) {
       return (
@@ -281,15 +283,6 @@ export default function SubtopicProgressCard({
             <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg">
               <Target className="h-4 w-4 mr-2" />
               Take Assessment
-            </Button>
-          </Link>
-        )
-      case 1:
-        return (
-          <Link href={`/quiz/practice/${subtopic.id}?focus=easy`}>
-            <Button className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg">
-              <BookOpen className="h-4 w-4 mr-2" />
-              Practice Basics
             </Button>
           </Link>
         )
@@ -314,7 +307,7 @@ export default function SubtopicProgressCard({
       case 4:
         return (
           <Link href={`/quiz/mastery/${subtopic.id}`}>
-            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg">
+            <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg">
               <Award className="h-4 w-4 mr-2" />
               Attempt Mastery
             </Button>
