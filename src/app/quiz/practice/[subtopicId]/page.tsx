@@ -1,71 +1,108 @@
-// Same pattern as assessment but with practice-specific content
-import { Suspense } from 'react'
+'use client'
+
+import { useState, useEffect } from 'react'
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/client'
 import { AssessmentEngine } from '@/lib/assessment-engine'
+import { IGCSEQuizAdapter, type IGCSESubtopic } from '@/lib/igcse-quiz-adapter'
+import QuizInterfaceV2 from '@/components/QuizInterfaceV2'
 import { Card, CardContent } from '@/components/ui/card'
-import { Brain, Clock, BarChart3, ArrowLeft, Zap } from 'lucide-react'
+import { Brain, ArrowLeft, Loader2, Zap } from 'lucide-react'
 import Link from 'next/link'
+import { useUser } from '@/hooks/useUser'
 
 interface PageProps {
   params: Promise<{ subtopicId: string }>
   searchParams: Promise<{ path?: string; focus?: string }>
 }
 
-async function getSubtopicData(subtopicId: string) {
-  const supabase = await createClient()
+export default function PracticeQuizPage({ params, searchParams }: PageProps) {
+  const [subtopicId, setSubtopicId] = useState<string>('')
+  const [paperPath, setPaperPath] = useState<'Core' | 'Extended'>('Core')
+  const [focus, setFocus] = useState<string | undefined>(undefined)
+  const [subtopic, setSubtopic] = useState<IGCSESubtopic | null>(null)
+  const [quiz, setQuiz] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [quizStarted, setQuizStarted] = useState(false)
   
-  const { data: subtopic, error } = await supabase
-    .from('igcse_subtopics')
-    .select(`
-      id,
-      subtopic_code,
-      title,
-      description,
-      difficulty_level,
-      igcse_topics (
-        id,
-        topic_number,
-        title,
-        color
-      )
-    `)
-    .eq('id', subtopicId)
-    .single()
+  const { user } = useUser()
 
-  if (error || !subtopic) return null
-  return subtopic
-}
+  // Initialize params (Next.js 15 compatibility)
+  useEffect(() => {
+    const initParams = async () => {
+      const resolvedParams = await params
+      const resolvedSearchParams = await searchParams
+      
+      setSubtopicId(resolvedParams.subtopicId)
+      setPaperPath(resolvedSearchParams.path?.toLowerCase() === 'extended' ? 'Extended' : 'Core')
+      setFocus(resolvedSearchParams.focus)
+    }
+    
+    initParams()
+  }, [params, searchParams])
 
-async function generatePracticeQuiz(
-  subtopicId: string, 
-  userPath: 'Core' | 'Extended',
-  focus?: string
-) {
-  try {
-    const focusAreas = focus ? [focus.charAt(0).toUpperCase() + focus.slice(1)] : ['Medium', 'Hard']
-    return await AssessmentEngine.generatePracticeQuiz(subtopicId, userPath, focusAreas)
-  } catch (error) {
-    console.error('Failed to generate practice quiz:', error)
-    return null
+  // Load data when params are ready
+  useEffect(() => {
+    if (subtopicId) {
+      loadQuizData()
+    }
+  }, [subtopicId, paperPath, focus]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadQuizData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Load subtopic data
+      const subtopicData = await getSubtopicData(subtopicId)
+      if (!subtopicData) {
+        notFound()
+        return
+      }
+      setSubtopic(subtopicData)
+
+      // Generate practice quiz
+      const focusAreas = focus ? [focus.charAt(0).toUpperCase() + focus.slice(1)] : ['Medium', 'Hard']
+      const quizData = await AssessmentEngine.generatePracticeQuiz(subtopicId, paperPath, focusAreas)
+      if (!quizData) {
+        throw new Error(`No questions available for ${paperPath} paper practice`)
+      }
+      setQuiz(quizData)
+
+    } catch (err) {
+      console.error('Failed to load quiz data:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load quiz')
+    } finally {
+      setLoading(false)
+    }
   }
-}
 
-export default async function PracticeQuizPage({ params, searchParams }: PageProps) {
-  const { subtopicId } = await params
-  const resolvedSearchParams = await searchParams
-  const paperPath = (resolvedSearchParams.path?.toLowerCase() === 'extended' ? 'Extended' : 'Core') as 'Core' | 'Extended'
-  const focus = resolvedSearchParams.focus
-  
-  // Load subtopic data
-  const subtopic = await getSubtopicData(subtopicId)
-  if (!subtopic) {
-    notFound()
+  const handleStartQuiz = () => {
+    setQuizStarted(true)
   }
 
-  // Generate practice quiz
-  const quiz = await generatePracticeQuiz(subtopicId, paperPath, focus)
-  if (!quiz) {
+  const getFocusIcon = () => {
+    switch (focus) {
+      case 'easy': return <span className="text-green-600">📚</span>
+      case 'medium': return <span className="text-yellow-600">⚡</span>
+      case 'hard': return <span className="text-red-600">🔥</span>
+      default: return <Zap className="h-4 w-4" />
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex items-center gap-3 text-gray-600">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading practice quiz...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !subtopic || !quiz) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="max-w-md">
@@ -75,7 +112,7 @@ export default async function PracticeQuizPage({ params, searchParams }: PagePro
               Practice Unavailable
             </h2>
             <p className="text-gray-600 mb-4">
-              No {focus ? `${focus} difficulty` : ''} questions available for {paperPath} paper practice.
+              {error || `No ${focus ? `${focus} difficulty` : ''} questions available for ${paperPath} paper practice.`}
             </p>
             <Link 
               href="/test-topics"
@@ -90,15 +127,19 @@ export default async function PracticeQuizPage({ params, searchParams }: PagePro
     )
   }
 
-  const getFocusIcon = () => {
-    switch (focus) {
-      case 'easy': return <span className="text-green-600">📚</span>
-      case 'medium': return <span className="text-yellow-600">⚡</span>
-      case 'hard': return <span className="text-red-600">🔥</span>
-      default: return <Zap className="h-4 w-4" />
-    }
+  // Show quiz interface once started - SIMPLE!
+  if (quizStarted) {
+    return (
+      <QuizInterfaceV2
+        user={IGCSEQuizAdapter.adaptUserData(user)}
+        profile={null}
+        subject={IGCSEQuizAdapter.adaptSubjectData(subtopic)}
+        questions={IGCSEQuizAdapter.adaptQuestionData(quiz.questions, subtopic)}
+      />
+    )
   }
 
+  // Show quiz preview and start button
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -147,11 +188,9 @@ export default async function PracticeQuizPage({ params, searchParams }: PagePro
           {/* Quiz Metadata */}
           <div className="flex items-center gap-6 text-sm text-gray-600">
             <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
               <span>{quiz.questions.length} Questions</span>
             </div>
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
               <span>~{quiz.estimatedTimeMinutes} Minutes</span>
             </div>
             <div className="text-xs bg-gray-100 px-2 py-1 rounded">
@@ -163,7 +202,7 @@ export default async function PracticeQuizPage({ params, searchParams }: PagePro
         </div>
       </div>
 
-      {/* Simple Quiz Display */}
+      {/* Quiz Preview */}
       <div className="max-w-4xl mx-auto px-4 py-6">
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="text-center mb-6">
@@ -175,44 +214,16 @@ export default async function PracticeQuizPage({ params, searchParams }: PagePro
             </p>
           </div>
 
-          {/* Quiz Questions Preview */}
-          <div className="space-y-4">
-            {quiz.questions.slice(0, 2).map((question, index) => (
-              <div key={question.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-sm font-medium text-gray-500">
-                    Question {index + 1}
-                  </span>
-                  <span className={`text-xs px-2 py-1 rounded ${
-                    question.difficulty === 1 ? 'bg-green-100 text-green-800' :
-                    question.difficulty === 2 ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {question.difficulty_label}
-                  </span>
-                </div>
-                <p className="text-gray-900">{question.question_text}</p>
-              </div>
-            ))}
-            
-            {quiz.questions.length > 2 && (
-              <div className="text-center text-gray-500 text-sm">
-                ... and {quiz.questions.length - 2} more questions
-              </div>
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="mt-6 flex gap-3 justify-center">
-            <Link 
-              href="/test-topics"
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+          {/* Start Quiz Button */}
+          <div className="text-center">
+            <button 
+              onClick={handleStartQuiz}
+              className={`px-8 py-3 text-white rounded-lg font-medium text-lg transition-colors ${
+                paperPath === 'Core' 
+                  ? 'bg-blue-600 hover:bg-blue-700' 
+                  : 'bg-purple-600 hover:bg-purple-700'
+              }`}
             >
-              Back to Topics
-            </Link>
-            <button className={`px-6 py-2 text-white rounded-lg font-medium ${
-              paperPath === 'Core' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-purple-600 hover:bg-purple-700'
-            }`}>
               Start Practice
             </button>
           </div>
@@ -220,4 +231,38 @@ export default async function PracticeQuizPage({ params, searchParams }: PagePro
       </div>
     </div>
   )
+}
+
+// Server-side data loading function
+async function getSubtopicData(subtopicId: string): Promise<IGCSESubtopic | null> {
+  const supabase = createClient()
+  
+  const { data: subtopic, error } = await supabase
+    .from('igcse_subtopics')
+    .select(`
+      id,
+      subtopic_code,
+      title,
+      description,
+      difficulty_level,
+      igcse_topics (
+        id,
+        topic_number,
+        title,
+        color
+      )
+    `)
+    .eq('id', subtopicId)
+    .single()
+
+  if (error || !subtopic) {
+    console.error('Failed to load subtopic:', error)
+    return null
+  }
+  
+  // Fix the type issue
+  return {
+    ...subtopic,
+    igcse_topics: subtopic.igcse_topics[0]
+  } as IGCSESubtopic
 }
