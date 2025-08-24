@@ -1019,3 +1019,164 @@ comprehensive, intelligent learning guidance interface."
 
 
 ===
+
+"FIXED: Complete 0-5 level system with accurate mastery calculation
+>>
+>> ? CRITICAL FIX: Data consistency between left/right columns achieved
+>> - Level 3 Approaching now correctly matches 73% performance data
+>> - Complete 0-5 level system: Unassessed(0) ␦ Beginning(1) ␦ Developing(2) ␦ Approaching(3) ␦ Proficient(4) ␦ Mastery(5)
+>> - Added Level 1 'Practice Basics' action button for beginners
+>>
+>> ?? ENHANCED CALCULATION LOGIC:
+>> - Uses actual questions_correct/questions_attempted ratio
+>> - Performance-based levels: 90%=L5, 75%=L4, 60%=L3, 40%=L2, 1%=L1, 0%=L0
+>> - Better Core/Extended breakdown using database values when available
+>> - Enhanced analysis with specific performance insights
+>>
+>> ?? IMPROVED USER EXPERIENCE:
+>> - Level 1 (Beginning): 'Practice Basics' - Red button for fundamentals
+>> - Level 3 (Approaching): 'Practice Hard Questions' - Yellow button for challenge
+>> - Intelligent recommendations based on difficulty performance
+>> - Detailed analysis: 'Good foundation with room for improvement'
+>>
+>> ?? DATA ACCURACY ACHIEVED:
+>> - Left column: Shows actual performance (4/5 Easy 80%, 5/7 Medium 71%, 2/3 Hard 67%)
+>> - Right column: Shows calculated Level 3 (73% overall = Approaching)
+>> - Perfect synchronization between performance data and level display"
+
+===
+
+ Questions for You:
+Which approach appeals to you? Current-focused, Weighted difficulty, or Hybrid?
+
+How recent is "current"? Last 10 questions? Last 7 days? Last assessment session?
+
+Should hard questions count more? 3x weight feels right, or different ratio?
+
+Display preference? Show both levels, or just the "current" level prominently?
+
+This is a fundamental UX decision - do we motivate users by showing recent progress, or keep them grounded with historical reality?
+
+What's your instinct on the best approach for student motivation and accurate assessment? 🎯
+
+Copy
+Deep Research
+I love your suggestions. Question one, I'm open to your suggestion. My thinking right now is to share full information so that it's very useful, and then we can trim down if need be. Question two, please suggest ideas. Presumably, going on the last X number of questions would be most accurate, because if we do it on time duration, we don't know how many they've done, and that gets us nowhere. And if we base it on a certain number of questions and they haven't done enough, then that could be a call to action for them to do more questions so that we can always have this current status as accurate and relevant. For number three, should hard questions count more? I'm not sure, and I think we need to analyze it because for the user to get an A star in the exam, they need to get the easy, medium, and hard questions correct. And there's no point if they get the hard ones right and the easy ones wrong, and then we reflect them to be very capable, but that's not going to be the end result in the exam. So the hard questions do matter a lot, but they particularly matter when the user has mastered the easy and medium questions, because then they need to get the hard questions to get that A star. But when they haven't mastered easy and medium, then perhaps we should weigh down any good performance in the hard questions because that may be by luck or it just doesn't make sense. Question four, show both levels. Like I said, we should try and show a full picture if we can. 
+
+===
+
+# Enhanced Mastery Calculation System
+
+## 🧮 **Core Philosophy: A* Exam-Aligned Assessment**
+
+Our mastery system reflects real IGCSE A* requirements: students must excel at **easy, medium, AND hard** questions. Hard question success only matters when foundations are solid.
+
+## 📊 **Multi-Dimensional Mastery Framework**
+
+### **Level System (0-5)**
+- **Level 0**: Unassessed (0% - No baseline established)
+- **Level 1**: Beginning (1-39% - Focus on fundamentals) 
+- **Level 2**: Developing (40-59% - Building core understanding)
+- **Level 3**: Approaching (60-74% - Good progress made)
+- **Level 4**: Proficient (75-89% - Strong performance, ready for mastery)
+- **Level 5**: Mastery (90-100% - Excellent command, A* potential)
+
+### **Dual Assessment Model**
+
+#### **Current Level** (Primary Display)
+- **Data Source**: Last 12 questions attempted
+- **Confidence Levels**:
+  - High: 12+ recent questions available
+  - Medium: 8-11 recent questions  
+  - Low: 5-7 recent questions
+  - Insufficient: <5 recent questions (show call-to-action)
+- **Purpose**: Reflects student's current ability and recent progress
+
+#### **Overall Level** (Historical Context)
+- **Data Source**: All-time performance across all questions
+- **Purpose**: Provides stability and long-term progress tracking
+- **Display**: Secondary context below current level
+
+### **Smart Conditional Weighting System**
+
+The system dynamically adjusts question weights based on foundational mastery:
+
+```typescript
+// Foundation Mastery Thresholds
+const EASY_MASTERY_THRESHOLD = 80%    // Must master basics first
+const MEDIUM_MASTERY_THRESHOLD = 70%  // Then tackle medium complexity
+const HARD_UNLOCK_THRESHOLD = 70%     // Both easy+medium needed for hard weighting
+
+// Conditional Weighting Logic
+if (easyMastered && mediumMastered) {
+  // A* Track: Hard questions get premium weighting
+  weights = { easy: 1, medium: 2, hard: 3 }
+} else if (easyMastered) {
+  // Medium Focus: Prioritize medium question mastery  
+  weights = { easy: 1, medium: 2.5, hard: 1 }
+} else {
+  // Foundation Building: Hard performance likely unreliable
+  weights = { easy: 2, medium: 1.5, hard: 0.5 }
+}
+A Readiness Analytics*
+Foundation Status
+Easy Mastery: 80%+ accuracy required for solid foundation
+Medium Mastery: 70%+ accuracy shows conceptual understanding
+Hard Ready: Both thresholds met = hard questions count toward A*
+Exam Readiness Metrics
+A Potential*: Weighted score considering all difficulty levels
+Weakest Area: Identifies easy/medium/hard focus area
+Next Milestone: Specific actionable guidance
+🎯 Implementation Phases
+Phase 1: Enhanced Calculation Logic ✅
+Smart conditional weighting system
+Current vs Overall level calculation
+Confidence assessment based on question volume
+Foundation mastery detection
+Phase 2: Comprehensive UI Display 🔄
+Current level (primary) + Overall level (context)
+Foundation breakdown with mastery indicators
+Confidence level display
+A* readiness metrics
+Trend analysis (improving/stable/declining)
+Phase 3: Advanced Analytics 📋
+Learning streak tracking
+Performance trend analysis
+Cross-topic recommendation engine
+Predictive A* probability modeling
+Phase 4: Adaptive Learning System 🚀
+Dynamic difficulty adjustment
+Personalized question selection
+Spaced repetition integration
+Weakness-focused practice generation
+🔧 Technical Implementation
+Data Structure
+Copyinterface ComprehensiveMasteryData {
+  current: CurrentPerformanceLevel
+  overall: HistoricalPerformanceLevel  
+  foundation: FoundationMasteryStatus
+  trend: PerformanceTrendAnalysis
+  examReadiness: AStarReadinessMetrics
+  recommendations: IntelligentGuidance[]
+}
+Key Functions
+calculateCurrentLevel(): Recent performance analysis
+calculateOverallLevel(): Historical performance context
+assessFoundationMastery(): Easy/Medium/Hard breakdown
+generateIntelligentRecommendations(): Contextual guidance
+calculateAStarPotential(): Exam readiness scoring
+🎓 Educational Principles
+Mastery-Based Progression: Students advance based on demonstrated competency
+Foundation-First: Easy questions must be mastered before hard questions matter
+Recency Bias: Recent performance weighted higher for motivation
+Transparency: Full information provided for informed learning decisions
+A Alignment*: System mirrors actual IGCSE exam requirements
+📈 Success Metrics
+Accuracy: Current level reflects true recent ability
+Motivation: Students see progress from recent improvements
+Reliability: Foundation-based weighting prevents false confidence
+Actionability: Clear guidance on next learning steps
+Exam Success: A* readiness accurately predicts exam performance
+
+====
+
