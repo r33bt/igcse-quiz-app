@@ -33,6 +33,13 @@ export default function AppNavigation({
       color: 'hover:text-blue-600'
     },
     {
+      path: '/test-topics',
+      icon: '🧪',
+      label: 'Test Topics',
+      color: 'hover:text-cyan-600',
+      isDev: true
+    },
+    {
       path: '/review',
       icon: '📝',
       label: 'Review',
@@ -43,6 +50,12 @@ export default function AppNavigation({
       icon: '📊',
       label: 'History',
       color: 'hover:text-green-600'
+    },
+    {
+      path: '/grades',
+      icon: '🎯',
+      label: 'Grades',
+      color: 'hover:text-orange-600'
     },
     {
       path: '/guide',
@@ -70,7 +83,7 @@ export default function AppNavigation({
               {title && showBackButton && (
                 <div className="h-6 w-px bg-gray-300"></div>
               )}
-              <Link 
+              <Link
                 href="/"
                 className="text-blue-600 hover:text-blue-700 font-semibold text-lg"
               >
@@ -80,9 +93,9 @@ export default function AppNavigation({
                 <>
                   <span className="text-gray-400">/</span>
                   <span className="text-gray-900 font-medium">
-                    {pathname === '/review' && 'Answer Review'}
-                    {pathname === '/history' && 'Quiz History'}
                     {pathname === '/guide' && 'User Guide'}
+                    {pathname === '/grades' && 'IGCSE Grading System'}
+                    {pathname === '/test-topics' && 'Enhanced Topic Selector (Dev)'}
                     {pathname.startsWith('/quiz/') && 'Taking Quiz'}
                     {pathname.startsWith('/history/') && 'Session Review'}
                     {pathname === '/diagnostic' && 'System Diagnostic'}
@@ -97,7 +110,7 @@ export default function AppNavigation({
               <Link
                 key={item.path}
                 href={item.path}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors relative ${
                   pathname === item.path
                     ? 'bg-gray-100 text-gray-900'
                     : `text-gray-600 ${item.color}`
@@ -105,6 +118,11 @@ export default function AppNavigation({
               >
                 <span className="mr-1">{item.icon}</span>
                 {item.label}
+                {item.isDev && (
+                  <span className="absolute -top-1 -right-1 bg-cyan-500 text-white text-xs px-1 rounded-full leading-tight">
+                    DEV
+                  </span>
+                )}
               </Link>
             ))}
           </div>
