@@ -76,7 +76,6 @@ interface SubtopicProgressCardProps {
   subtopic: IGCSESubtopic
   progress?: SubtopicProgress
   availability: QuestionAvailability
-  userPaperPath?: 'Core' | 'Extended' // Default to Core
 }
 
 // CORRECTED: Official Cambridge June 2025 Grade Boundaries (Excluding BX Outlier)
@@ -296,9 +295,11 @@ const GradeTooltip = ({ paperPath }: { paperPath: 'Core' | 'Extended' }) => {
 export default function SubtopicProgressCard({ 
   subtopic, 
   progress, 
-  availability,
-  userPaperPath = 'Core' // Default to Core paper path
+  availability
 }: SubtopicProgressCardProps) {
+  
+  // 🎯 Paper Path Selection State
+  const [selectedPaperPath, setSelectedPaperPath] = useState<'Core' | 'Extended'>('Core')
   
   // Enhanced mastery calculation system
   const masteryData = progress 
@@ -423,9 +424,9 @@ export default function SubtopicProgressCard({
 
   const dualPathData = calculateDualPathMastery()
 
-  // Get the appropriate level to display based on user's paper path
+  // Get the appropriate level to display based on selected paper path
   const getDisplayLevel = () => {
-    return userPaperPath === 'Extended' ? dualPathData.extendedPath : dualPathData.corePath
+    return selectedPaperPath === 'Extended' ? dualPathData.extendedPath : dualPathData.corePath
   }
 
   const displayLevel = getDisplayLevel()
@@ -496,37 +497,37 @@ export default function SubtopicProgressCard({
 
   const performanceData = getPerformanceData()
 
-  // Get synced recommendations and action options based on user's paper path
-  const getRecommendationsAndActions = () => {
+  // 🎯 Get path-specific recommendations and actions
+  const getPathSpecificRecommendationsAndActions = () => {
     const totalQuestions = progress?.questions_attempted || 0
     const { foundation } = dualPathData
-    const currentPath = userPaperPath === 'Extended' ? dualPathData.extendedPath : dualPathData.corePath
+    const currentPath = selectedPaperPath === 'Extended' ? dualPathData.extendedPath : dualPathData.corePath
     
     if (!progress) {
       return {
-        recommendations: ["Begin with assessment to establish your learning baseline and identify strengths."],
+        recommendations: [`Begin with ${selectedPaperPath.toLowerCase()} paper assessment to establish your learning baseline.`],
         actions: [
           {
             id: 'assessment',
-            title: "Start Assessment",
-            description: "I'll establish my baseline performance across all difficulty levels",
-            url: `/quiz/assessment/${subtopic.id}`,
+            title: `Start ${selectedPaperPath} Assessment`,
+            description: `I'll establish my ${selectedPaperPath.toLowerCase()} paper baseline performance`,
+            url: `/quiz/assessment/${subtopic.id}?path=${selectedPaperPath.toLowerCase()}`,
             icon: Target,
             recommended: true
           },
           {
             id: 'practice',
-            title: "Practice Questions", 
-            description: "I'll start practicing mixed questions right away",
-            url: `/quiz/practice/${subtopic.id}`,
+            title: `Practice ${selectedPaperPath} Questions`, 
+            description: `I'll start practicing ${selectedPaperPath.toLowerCase()} paper questions right away`,
+            url: `/quiz/practice/${subtopic.id}?path=${selectedPaperPath.toLowerCase()}`,
             icon: BookOpen,
             recommended: false
           },
           {
             id: 'explore',
-            title: "Explore Question Types",
-            description: "I want to see what types of questions are available first",
-            url: `/quiz/explore/${subtopic.id}`,
+            title: `Explore ${selectedPaperPath} Question Types`,
+            description: `I want to see ${selectedPaperPath.toLowerCase()} paper question types first`,
+            url: `/quiz/explore/${subtopic.id}?path=${selectedPaperPath.toLowerCase()}`,
             icon: Brain,
             recommended: false
           }
@@ -539,130 +540,130 @@ export default function SubtopicProgressCard({
 
     if (totalQuestions < 12) {
       recommendations = [
-        `Take ${12 - totalQuestions} more questions for reliable level assessment`,
-        "Focus on building solid foundations before advancing to harder topics"
+        `Take ${12 - totalQuestions} more ${selectedPaperPath.toLowerCase()} questions for reliable assessment`,
+        `${selectedPaperPath} paper success requires solid foundations across all difficulty levels`
       ]
       
       actions = [
         {
           id: 'foundation',
-          title: "Build Foundation", 
-          description: `I need ${12 - totalQuestions} more questions for accurate assessment`,
-          url: `/quiz/practice/${subtopic.id}?focus=easy`,
+          title: `Build ${selectedPaperPath} Foundation`, 
+          description: `I need ${12 - totalQuestions} more ${selectedPaperPath.toLowerCase()} questions for accurate assessment`,
+          url: `/quiz/practice/${subtopic.id}?focus=easy&path=${selectedPaperPath.toLowerCase()}`,
           icon: Target,
           recommended: true
         },
         {
           id: 'mixed',
-          title: "Mixed Practice",
-          description: "I want to practice all difficulty levels together",
-          url: `/quiz/practice/${subtopic.id}`,
+          title: `Mixed ${selectedPaperPath} Practice`,
+          description: `I want to practice all ${selectedPaperPath.toLowerCase()} difficulty levels together`,
+          url: `/quiz/practice/${subtopic.id}?path=${selectedPaperPath.toLowerCase()}`,
           icon: Brain,
           recommended: false
         },
         {
           id: 'assessment',
-          title: "Take Full Assessment",
-          description: "I want a comprehensive evaluation right now", 
-          url: `/quiz/assessment/${subtopic.id}`,
+          title: `Take Full ${selectedPaperPath} Assessment`,
+          description: `I want comprehensive ${selectedPaperPath.toLowerCase()} evaluation right now`, 
+          url: `/quiz/assessment/${subtopic.id}?path=${selectedPaperPath.toLowerCase()}`,
           icon: BookOpen,
           recommended: false
         }
       ]
     } else if (!foundation.easyMastered) {
       recommendations = [
-        "Master easy questions first - 80%+ accuracy unlocks next level",
-        `${userPaperPath} paper success requires strong foundations`
+        `Master ${selectedPaperPath.toLowerCase()} easy questions first - 80%+ accuracy unlocks next level`,
+        `${selectedPaperPath} paper ${currentPath.currentGrade === 'U' ? 'requires' : `Grade ${currentPath.nextGrade} needs`} strong foundations`
       ]
       
       actions = [
         {
           id: 'easy',
-          title: "Master Easy Questions",
-          description: "I need to strengthen my foundations first (80%+ target)",
-          url: `/quiz/practice/${subtopic.id}?focus=easy`,
+          title: `Master ${selectedPaperPath} Easy Questions`,
+          description: `I need to strengthen my ${selectedPaperPath.toLowerCase()} foundations first (80%+ target)`,
+          url: `/quiz/practice/${subtopic.id}?focus=easy&path=${selectedPaperPath.toLowerCase()}`,
           icon: Target,
           recommended: true
         },
         {
           id: 'mixed',
-          title: "Practice All Levels",
-          description: "I want to work on easy, medium, and hard together",
-          url: `/quiz/practice/${subtopic.id}`,
+          title: `Practice All ${selectedPaperPath} Levels`,
+          description: `I want to work on all ${selectedPaperPath.toLowerCase()} difficulties together`,
+          url: `/quiz/practice/${subtopic.id}?path=${selectedPaperPath.toLowerCase()}`,
           icon: Brain,
           recommended: false
         },
         {
           id: 'timed',
-          title: "Timed Practice Quiz",
-          description: "I want to practice under exam-like time pressure",
-          url: `/quiz/timed/${subtopic.id}`,
+          title: `Timed ${selectedPaperPath} Practice`,
+          description: `I want ${selectedPaperPath.toLowerCase()} practice under exam time pressure`,
+          url: `/quiz/timed/${subtopic.id}?path=${selectedPaperPath.toLowerCase()}`,
           icon: Clock,
           recommended: false
         }
       ]
     } else if (!foundation.mediumMastered) {
       recommendations = [
-        "Excellent easy mastery! Focus on medium questions next",
-        `70%+ medium accuracy ${userPaperPath === 'Core' ? 'achieves Grade C potential' : 'unlocks Extended potential'}`
+        `Excellent ${selectedPaperPath.toLowerCase()} easy mastery! Focus on medium questions next`,
+        `70%+ medium accuracy ${selectedPaperPath === 'Core' ? 'achieves Grade C potential' : 'unlocks Advanced Extended potential'}`
       ]
       
       actions = [
         {
           id: 'medium',
-          title: "Master Medium Questions",
-          description: "I'm ready to tackle medium difficulty (70%+ target)",
-          url: `/quiz/practice/${subtopic.id}?focus=medium`,
+          title: `Master ${selectedPaperPath} Medium Questions`,
+          description: `I'm ready for ${selectedPaperPath.toLowerCase()} medium difficulty (70%+ target)`,
+          url: `/quiz/practice/${subtopic.id}?focus=medium&path=${selectedPaperPath.toLowerCase()}`,
           icon: TrendingUp,
           recommended: true
         },
         {
           id: 'mixed', 
-          title: "Practice All Levels",
-          description: "I want to work on easy, medium, and hard together",
-          url: `/quiz/practice/${subtopic.id}`,
+          title: `Practice All ${selectedPaperPath} Levels`,
+          description: `I want to work on all ${selectedPaperPath.toLowerCase()} difficulties together`,
+          url: `/quiz/practice/${subtopic.id}?path=${selectedPaperPath.toLowerCase()}`,
           icon: Brain,
           recommended: false
         },
         {
           id: 'challenge',
-          title: "Challenge Questions",
-          description: "I want to try some harder questions for practice",
-          url: `/quiz/challenge/${subtopic.id}`,
+          title: `${selectedPaperPath} Challenge Questions`,
+          description: `I want to try harder ${selectedPaperPath.toLowerCase()} questions for practice`,
+          url: `/quiz/challenge/${subtopic.id}?path=${selectedPaperPath.toLowerCase()}`,
           icon: Zap,
           recommended: false
         }
       ]
     } else {
-      const isExtendedReady = userPaperPath === 'Core' && dualPathData.corePath.level >= 3
+      const isReadyForAdvanced = selectedPaperPath === 'Core' && dualPathData.corePath.level >= 3
       
       recommendations = [
-        "Foundations complete - hard questions now contribute to grade potential",
-        isExtendedReady ? "Consider progressing to Extended paper topics" : "Maintain consistency for top grades"
+        `${selectedPaperPath} foundations complete - hard questions now boost grade potential`,
+        isReadyForAdvanced ? "Consider progressing to Extended paper topics" : `Maintain consistency for top ${selectedPaperPath.toLowerCase()} grades`
       ]
       
       actions = [
         {
           id: 'hard',
-          title: isExtendedReady ? "Try Extended Level" : "Grade Boost Challenge",
-          description: isExtendedReady ? "I'm ready to attempt Extended paper questions" : "I'm ready for hard questions to boost my grade potential",
-          url: `/quiz/practice/${subtopic.id}?focus=${isExtendedReady ? 'extended' : 'hard'}`,
+          title: isReadyForAdvanced ? "Try Extended Level" : `${selectedPaperPath} Grade Boost`,
+          description: isReadyForAdvanced ? "I'm ready for Extended paper challenges" : `I'm ready for hard ${selectedPaperPath.toLowerCase()} questions to boost grades`,
+          url: `/quiz/practice/${subtopic.id}?focus=${isReadyForAdvanced ? 'extended' : 'hard'}&path=${selectedPaperPath.toLowerCase()}`,
           icon: Star,
           recommended: true
         },
         {
           id: 'mastery',
-          title: "Mastery Quiz",
-          description: "I want to prove I've mastered this topic completely",
-          url: `/quiz/mastery/${subtopic.id}`,
+          title: `${selectedPaperPath} Mastery Quiz`,
+          description: `I want to prove I've mastered ${selectedPaperPath.toLowerCase()} paper completely`,
+          url: `/quiz/mastery/${subtopic.id}?path=${selectedPaperPath.toLowerCase()}`,
           icon: Award,
           recommended: false
         },
         {
           id: 'maintain',
-          title: "Review & Maintain",
-          description: "I want to keep my current level with periodic practice",
-          url: `/quiz/review/${subtopic.id}`,
+          title: `Review & Maintain ${selectedPaperPath}`,
+          description: `I want to keep my ${selectedPaperPath.toLowerCase()} level with periodic practice`,
+          url: `/quiz/review/${subtopic.id}?path=${selectedPaperPath.toLowerCase()}`,
           icon: RefreshCw,
           recommended: false
         }
@@ -672,20 +673,46 @@ export default function SubtopicProgressCard({
     return { recommendations, actions }
   }
 
-  const { recommendations, actions } = getRecommendationsAndActions()
+  const { recommendations, actions } = getPathSpecificRecommendationsAndActions()
   
   // Simple state management with useEffect for default selection
   const recommendedAction = actions.find(a => a.recommended) || actions[0]
   const [selectedAction, setSelectedAction] = useState<string>('')
   
-  // Set default on mount
+  // Set default on mount and when paper path changes
   useEffect(() => {
-    if (recommendedAction && !selectedAction) {
+    if (recommendedAction && (!selectedAction || selectedAction !== recommendedAction.id)) {
       setSelectedAction(recommendedAction.id)
     }
-  }, [recommendedAction, selectedAction])
+  }, [recommendedAction, selectedAction, selectedPaperPath])
 
   const currentAction = actions.find(a => a.id === selectedAction) || recommendedAction
+
+  // 🎨 REFINED: Professional Paper Path Tab Component
+  const PaperPathTabs = () => (
+    <div className="flex border-b border-gray-200 mb-4">
+      <button
+        onClick={() => setSelectedPaperPath('Core')}
+        className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-all duration-200 ${
+          selectedPaperPath === 'Core'
+            ? 'border-blue-600 text-blue-600 bg-blue-50'
+            : 'border-transparent text-blue-600 hover:text-blue-700 hover:bg-blue-50 hover:border-blue-300'
+        }`}
+      >
+        📘 Core Paper
+      </button>
+      <button
+        onClick={() => setSelectedPaperPath('Extended')}
+        className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-all duration-200 ${
+          selectedPaperPath === 'Extended'
+            ? 'border-purple-600 text-purple-600 bg-purple-50'
+            : 'border-transparent text-purple-600 hover:text-purple-700 hover:bg-purple-50 hover:border-purple-300'
+        }`}
+      >
+        📜 Extended Paper
+      </button>
+    </div>
+  )
 
   return (
     <Card className="hover:shadow-lg transition-all duration-200 border rounded-xl bg-white">
@@ -833,30 +860,40 @@ export default function SubtopicProgressCard({
               </div>
             )}
 
-            {/* 🎨 MATCHING STYLED RECOMMENDATIONS BOX */}
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-              <h4 className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2">
+            {/* 🎨 SYNCHRONIZED: Recommendations Box with Paper Path Colors */}
+            <div className={`p-4 rounded-lg border ${
+              selectedPaperPath === 'Core' 
+                ? 'bg-blue-50 border-blue-100' 
+                : 'bg-purple-50 border-purple-100'
+            }`}>
+              <h4 className={`text-sm font-medium uppercase tracking-wide mb-3 flex items-center gap-2 ${
+                selectedPaperPath === 'Core' ? 'text-blue-600' : 'text-purple-600'
+              }`}>
                 <Target className="h-4 w-4" />
                 Current Priority & Recommendations
               </h4>
-              <div className="text-xs text-gray-700 space-y-1">
+              <div className={`text-xs space-y-1 ${
+                selectedPaperPath === 'Core' ? 'text-blue-700' : 'text-purple-700'
+              }`}>
                 {recommendations.map((rec, index) => (
                   <div key={index}>• {rec}</div>
                 ))}
                 
                 {/* Combined Smart Insight */}
                 {progress && progress.questions_attempted > 0 && (
-                  <div className="mt-2 pt-2 border-t border-gray-200">
+                  <div className={`mt-2 pt-2 border-t ${
+                    selectedPaperPath === 'Core' ? 'border-blue-200' : 'border-purple-200'
+                  }`}>
                     <div className="flex items-center gap-1 mb-1">
-                      <Lightbulb className="h-3 w-3 text-gray-600" />
-                      <span className="font-medium text-gray-700">Key Insight:</span>
+                      <Lightbulb className="h-3 w-3" />
+                      <span className="font-medium">Key Insight:</span>
                     </div>
                     <div>
                       {dualPathData.foundation.easyMastered && dualPathData.foundation.mediumMastered ? 
-                        "Foundations complete - advanced questions now boost grade potential significantly" :
+                        `${selectedPaperPath} foundations complete - advanced questions now boost grade potential significantly` :
                         dualPathData.foundation.easyMastered ?
-                        "Easy mastery achieved - medium questions are key to unlocking higher grades" :
-                        "Building foundations phase - easy questions must reach 80%+ before progression"
+                        `Easy mastery achieved - medium ${selectedPaperPath.toLowerCase()} questions unlock higher grades` :
+                        `Building ${selectedPaperPath.toLowerCase()} foundations - easy questions must reach 80%+ before progression`
                       }
                     </div>
                   </div>
@@ -865,9 +902,13 @@ export default function SubtopicProgressCard({
             </div>
           </div>
 
-          {/* RIGHT COLUMN (2/5) - CLEAN LEVEL DISPLAY */}
+          {/* RIGHT COLUMN (2/5) - ENHANCED WITH REFINED TABBED INTERFACE */}
           <div className="col-span-2 space-y-5">
-            {/* Clean Level Display - Shows User's Paper Path Level */}
+            
+            {/* 🎯 REFINED: Professional Paper Path Selection Tabs */}
+            <PaperPathTabs />
+
+            {/* Enhanced Level Display - Shows Selected Paper Path */}
             <div className="text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <div className="text-2xl font-bold text-gray-900">Level {displayLevel.level}</div>
@@ -878,8 +919,15 @@ export default function SubtopicProgressCard({
                 </SimpleTooltip>
               </div>
               
-              <div className="text-sm text-gray-600 mb-2">
-                {userPaperPath} Progress: {displayLevel.percentage}% ({dualPathData.overall.questionsUsed} questions)
+              {/* 🎯 CLEAR PAPER PATH INDICATION */}
+              <div className={`text-sm font-medium mb-2 ${
+                selectedPaperPath === 'Core' ? 'text-blue-600' : 'text-purple-600'
+              }`}>
+                {selectedPaperPath} Paper Progress: {displayLevel.percentage}%
+              </div>
+              
+              <div className="text-xs text-gray-500">
+                ({dualPathData.overall.questionsUsed} questions analyzed)
               </div>
               
               {displayLevel.level < 5 && (
@@ -889,10 +937,14 @@ export default function SubtopicProgressCard({
               )}
             </div>
 
-            {/* Action Selection */}
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <h4 className="text-sm font-semibold text-blue-900 mb-3">
-                Select Your Learning Path
+            {/* Enhanced Action Selection with Paper Path Context */}
+            <div className={`p-4 rounded-lg border ${
+              selectedPaperPath === 'Core' ? 'bg-blue-50 border-blue-200' : 'bg-purple-50 border-purple-200'
+            }`}>
+              <h4 className={`text-sm font-semibold mb-3 ${
+                selectedPaperPath === 'Core' ? 'text-blue-900' : 'text-purple-900'
+              }`}>
+                Select Your {selectedPaperPath} Learning Path
               </h4>
               
               <div className="space-y-2 mb-4">
@@ -904,23 +956,37 @@ export default function SubtopicProgressCard({
                     <div 
                       key={action.id} 
                       className={`flex items-start gap-2 p-2 rounded cursor-pointer transition-all ${
-                        isSelected ? 'bg-blue-100 border-2 border-blue-300' : 'bg-white border border-gray-200 hover:border-blue-200'
+                        isSelected ? 
+                          (selectedPaperPath === 'Core' ? 'bg-blue-100 border-2 border-blue-300' : 'bg-purple-100 border-2 border-purple-300') : 
+                          'bg-white border border-gray-200 hover:border-blue-200'
                       }`}
                       onClick={() => setSelectedAction(action.id)}
                     >
                       {/* Custom visual indicator */}
                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center mt-0.5 ${
-                        isSelected ? 'border-blue-600 bg-blue-600' : 'border-gray-300'
+                        isSelected ? 
+                          (selectedPaperPath === 'Core' ? 'border-blue-600 bg-blue-600' : 'border-purple-600 bg-purple-600') : 
+                          'border-gray-300'
                       }`}>
                         {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                       </div>
                       
                       <div className="flex-1">
-                        <div className="text-sm font-medium text-blue-900">
+                        <div className={`text-sm font-medium ${
+                          selectedPaperPath === 'Core' ? 'text-blue-900' : 'text-purple-900'
+                        }`}>
                           {action.title} 
-                          {isRecommended && <span className="text-xs text-blue-600 font-semibold ml-1">(Recommended)</span>}
+                          {isRecommended && (
+                            <span className={`text-xs font-semibold ml-1 ${
+                              selectedPaperPath === 'Core' ? 'text-blue-600' : 'text-purple-600'
+                            }`}>
+                              (Recommended)
+                            </span>
+                          )}
                         </div>
-                        <div className="text-xs text-blue-700 leading-relaxed">
+                        <div className={`text-xs leading-relaxed ${
+                          selectedPaperPath === 'Core' ? 'text-blue-700' : 'text-purple-700'
+                        }`}>
                           {action.description}
                         </div>
                       </div>
@@ -929,11 +995,15 @@ export default function SubtopicProgressCard({
                 })}
               </div>
 
-              {/* Action Button */}
+              {/* Enhanced Action Button with Paper Path Colors */}
               <Link href={currentAction?.url || '#'}>
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                <Button className={`w-full text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${
+                  selectedPaperPath === 'Core' 
+                    ? 'bg-blue-600 hover:bg-blue-700' 
+                    : 'bg-purple-600 hover:bg-purple-700'
+                }`}>
                   <Play className="h-4 w-4 mr-2" />
-                  <span className="text-sm">Start Learning</span>
+                  <span className="text-sm">Start {selectedPaperPath} Learning</span>
                 </Button>
               </Link>
             </div>
