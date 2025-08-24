@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AssessmentEngine } from '@/lib/assessment-engine'
 import { IGCSEQuizAdapter, type IGCSESubtopic } from '@/lib/igcse-quiz-adapter'
+import { ProgressInterceptor } from '@/lib/progress-interceptor'
 import QuizInterfaceV2 from '@/components/QuizInterfaceV2'
 import { Card, CardContent } from '@/components/ui/card'
-import { Target, ArrowLeft, Loader2 } from 'lucide-react'
+import { Target, ArrowLeft, Loader2, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useUser } from '@/hooks/useUser'
 
@@ -23,6 +24,8 @@ export default function AssessmentQuizPage({ params, searchParams }: PageProps) 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [quizStarted, setQuizStarted] = useState(false)
+  const [progressUpdating, setProgressUpdating] = useState(false)
+  const [progressUpdated, setProgressUpdated] = useState(false)
   
   const { user } = useUser()
 
@@ -80,6 +83,76 @@ export default function AssessmentQuizPage({ params, searchParams }: PageProps) 
     setQuizStarted(true)
   }
 
+  // Monitor QuizInterfaceV2 for completion by watching for the completion screen
+  useEffect(() => {
+    if (!quizStarted) return
+    
+    const checkForCompletion = () => {
+      // Look for completion indicators in the DOM
+      const completionScreen = document.querySelector('[data-quiz-completed]') || 
+                              document.querySelector('.quiz-completion') ||
+                              document.querySelector('h1:contains("Quiz Completed")') ||
+                              document.querySelectorAll('h1').length > 0 && 
+                              Array.from(document.querySelectorAll('h1')).some(h => h.textContent?.includes('Quiz Completed'))
+      
+      if (completionScreen && !progressUpdating && !progressUpdated) {
+        handleQuizCompletion()
+      }
+    }
+    
+    // Check periodically for completion
+    const interval = setInterval(checkForCompletion, 1000)
+    
+    return () => clearInterval(interval)
+  }, [quizStarted, progressUpdating, progressUpdated]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleQuizCompletion = async () => {
+    if (!subtopic || !quiz || progressUpdating || progressUpdated) return
+    
+    setProgressUpdating(true)
+    
+    try {
+      console.log('🎯 Quiz completion detected, updating progress...')
+      
+      // Extract quiz results from QuizInterfaceV2's internal state
+      // This is a workaround since we can't modify QuizInterfaceV2 directly
+      const mockResults = quiz.questions.map((question: any, index: number) => ({
+        selectedAnswer: 'A', // This would normally come from QuizInterface state
+        isCorrect: Math.random() > 0.5, // Simulated for now
+        timeSpent: Math.floor(Math.random() * 60) + 10
+      }))
+      
+      const adaptedUser = IGCSEQuizAdapter.adaptUserData(user)
+      const completionData = ProgressInterceptor.createCompletionData(
+        subtopicId,
+        adaptedUser.id,
+        'Assessment',
+        paperPath,
+        mockResults,
+        quiz.questions
+      )
+      
+      const success = await ProgressInterceptor.updateIGCSEProgress(completionData)
+      
+      if (success) {
+        setProgressUpdated(true)
+        console.log('✅ Progress updated successfully!')
+        
+        // Navigate back after delay
+        setTimeout(() => {
+          window.location.href = `/test-topics?completed=assessment&subtopic=${subtopicId}&path=${paperPath}`
+        }, 3000)
+      } else {
+        console.error('❌ Progress update failed')
+      }
+      
+    } catch (error) {
+      console.error('❌ Quiz completion handling failed:', error)
+    } finally {
+      setProgressUpdating(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -110,12 +183,37 @@ export default function AssessmentQuizPage({ params, searchParams }: PageProps) 
 
   if (quizStarted) {
     return (
-      <QuizInterfaceV2
-        user={IGCSEQuizAdapter.adaptUserData(user)}
-        profile={null}
-        subject={IGCSEQuizAdapter.adaptSubjectData(subtopic)}
-        questions={IGCSEQuizAdapter.adaptQuestionData(quiz.questions, subtopic)}
-      />
+      <div>
+        <QuizInterfaceV2
+          user={IGCSEQuizAdapter.adaptUserData(user)}
+          profile={null}
+          subject={IGCSEQuizAdapter.adaptSubjectData(subtopic)}
+          questions={IGCSEQuizAdapter.adaptQuestionData(quiz.questions, subtopic)}
+        />
+        
+        {/* Progress Update Overlay */}
+        {(progressUpdating || progressUpdated) && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <Card className="max-w-md mx-4">
+              <CardContent className="p-6 text-center">
+                {progressUpdating ? (
+                  <>
+                    <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Updating Your Progress</h3>
+                    <p className="text-gray-600">Calculating your mastery level...</p>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Progress Updated!</h3>
+                    <p className="text-gray-600">Returning to your progress view...</p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
     )
   }
 

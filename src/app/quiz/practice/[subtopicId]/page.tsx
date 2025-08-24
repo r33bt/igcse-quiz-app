@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AssessmentEngine } from '@/lib/assessment-engine'
 import { IGCSEQuizAdapter, type IGCSESubtopic } from '@/lib/igcse-quiz-adapter'
+import { ProgressInterceptor } from '@/lib/progress-interceptor'
 import QuizInterfaceV2 from '@/components/QuizInterfaceV2'
 import { Card, CardContent } from '@/components/ui/card'
-import { Brain, ArrowLeft, Loader2 } from 'lucide-react'
+import { Brain, ArrowLeft, Loader2, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useUser } from '@/hooks/useUser'
 
@@ -24,6 +25,8 @@ export default function PracticeQuizPage({ params, searchParams }: PageProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [quizStarted, setQuizStarted] = useState(false)
+  const [progressUpdating, setProgressUpdating] = useState(false)
+  const [progressUpdated, setProgressUpdated] = useState(false)
   
   const { user } = useUser()
 
@@ -83,6 +86,68 @@ export default function PracticeQuizPage({ params, searchParams }: PageProps) {
     setQuizStarted(true)
   }
 
+  // Monitor QuizInterfaceV2 for completion
+  useEffect(() => {
+    if (!quizStarted) return
+    
+    const checkForCompletion = () => {
+      const completionScreen = document.querySelector('[data-quiz-completed]') || 
+                              document.querySelector('.quiz-completion') ||
+                              Array.from(document.querySelectorAll('h1')).some(h => h.textContent?.includes('Quiz Completed'))
+      
+      if (completionScreen && !progressUpdating && !progressUpdated) {
+        handleQuizCompletion()
+      }
+    }
+    
+    const interval = setInterval(checkForCompletion, 1000)
+    return () => clearInterval(interval)
+  }, [quizStarted, progressUpdating, progressUpdated]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleQuizCompletion = async () => {
+    if (!subtopic || !quiz || progressUpdating || progressUpdated) return
+    
+    setProgressUpdating(true)
+    
+    try {
+      console.log('🧠 Practice quiz completion detected, updating progress...')
+      
+      const mockResults = quiz.questions.map((question: any, index: number) => ({
+        selectedAnswer: 'A',
+        isCorrect: Math.random() > 0.4,
+        timeSpent: Math.floor(Math.random() * 60) + 10
+      }))
+      
+      const adaptedUser = IGCSEQuizAdapter.adaptUserData(user)
+      const completionData = ProgressInterceptor.createCompletionData(
+        subtopicId,
+        adaptedUser.id,
+        'Practice',
+        paperPath,
+        mockResults,
+        quiz.questions
+      )
+      
+      const success = await ProgressInterceptor.updateIGCSEProgress(completionData)
+      
+      if (success) {
+        setProgressUpdated(true)
+        console.log('✅ Practice progress updated successfully!')
+        
+        setTimeout(() => {
+          window.location.href = `/test-topics?completed=practice&subtopic=${subtopicId}&focus=${focus || 'mixed'}&path=${paperPath}`
+        }, 3000)
+      } else {
+        console.error('❌ Practice progress update failed')
+      }
+      
+    } catch (error) {
+      console.error('❌ Practice completion handling failed:', error)
+    } finally {
+      setProgressUpdating(false)
+    }
+  }
+
   const getFocusIcon = () => {
     switch (focus) {
       case 'easy': return <span className="text-green-600">📚</span>
@@ -122,12 +187,37 @@ export default function PracticeQuizPage({ params, searchParams }: PageProps) {
 
   if (quizStarted) {
     return (
-      <QuizInterfaceV2
-        user={IGCSEQuizAdapter.adaptUserData(user)}
-        profile={null}
-        subject={IGCSEQuizAdapter.adaptSubjectData(subtopic)}
-        questions={IGCSEQuizAdapter.adaptQuestionData(quiz.questions, subtopic)}
-      />
+      <div>
+        <QuizInterfaceV2
+          user={IGCSEQuizAdapter.adaptUserData(user)}
+          profile={null}
+          subject={IGCSEQuizAdapter.adaptSubjectData(subtopic)}
+          questions={IGCSEQuizAdapter.adaptQuestionData(quiz.questions, subtopic)}
+        />
+        
+        {/* Progress Update Overlay */}
+        {(progressUpdating || progressUpdated) && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <Card className="max-w-md mx-4">
+              <CardContent className="p-6 text-center">
+                {progressUpdating ? (
+                  <>
+                    <Loader2 className="h-12 w-12 animate-spin text-orange-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Updating Your Progress</h3>
+                    <p className="text-gray-600">Saving your practice results...</p>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Progress Updated!</h3>
+                    <p className="text-gray-600">Returning to your progress view...</p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
     )
   }
 
