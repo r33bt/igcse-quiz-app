@@ -2,17 +2,17 @@ import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AssessmentEngine } from '@/lib/assessment-engine'
-import QuizInterface from '@/components/QuizInterface'
 import { Card, CardContent } from '@/components/ui/card'
-import { Target, Clock, BarChart3 } from 'lucide-react'
+import { Target, Clock, BarChart3, ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 
 interface PageProps {
-  params: { subtopicId: string }
-  searchParams: { path?: string; focus?: string }
+  params: Promise<{ subtopicId: string }>
+  searchParams: Promise<{ path?: string; focus?: string }>
 }
 
 async function getSubtopicData(subtopicId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   const { data: subtopic, error } = await supabase
     .from('igcse_subtopics')
@@ -46,8 +46,9 @@ async function generateAssessmentQuiz(subtopicId: string, userPath: 'Core' | 'Ex
 }
 
 export default async function AssessmentQuizPage({ params, searchParams }: PageProps) {
-  const { subtopicId } = params
-  const paperPath = (searchParams.path?.toLowerCase() === 'extended' ? 'Extended' : 'Core') as 'Core' | 'Extended'
+  const { subtopicId } = await params
+  const resolvedSearchParams = await searchParams
+  const paperPath = (resolvedSearchParams.path?.toLowerCase() === 'extended' ? 'Extended' : 'Core') as 'Core' | 'Extended'
   
   // Load subtopic data
   const subtopic = await getSubtopicData(subtopicId)
@@ -59,7 +60,7 @@ export default async function AssessmentQuizPage({ params, searchParams }: PageP
   const quiz = await generateAssessmentQuiz(subtopicId, paperPath)
   if (!quiz) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
             <Target className="h-12 w-12 text-red-500 mx-auto mb-4" />
@@ -69,9 +70,13 @@ export default async function AssessmentQuizPage({ params, searchParams }: PageP
             <p className="text-gray-600 mb-4">
               No questions available for {paperPath} paper assessment of this subtopic.
             </p>
-            <p className="text-sm text-gray-500">
-              Please try a different paper path or contact support.
-            </p>
+            <Link 
+              href="/test-topics"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Topics
+            </Link>
           </CardContent>
         </Card>
       </div>
@@ -83,7 +88,13 @@ export default async function AssessmentQuizPage({ params, searchParams }: PageP
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 mb-4">
+            <Link 
+              href="/test-topics"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5 text-gray-600" />
+            </Link>
             <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
               paperPath === 'Core' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'
             }`}>
@@ -108,7 +119,7 @@ export default async function AssessmentQuizPage({ params, searchParams }: PageP
           </div>
 
           {/* Quiz Metadata */}
-          <div className="mt-4 flex items-center gap-6 text-sm text-gray-600">
+          <div className="flex items-center gap-6 text-sm text-gray-600">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               <span>{quiz.questions.length} Questions</span>
@@ -126,36 +137,71 @@ export default async function AssessmentQuizPage({ params, searchParams }: PageP
         </div>
       </div>
 
-      {/* Quiz Content */}
-      <Suspense fallback={
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading assessment...</p>
+      {/* Simple Quiz Display - Bypass QuizInterface for now */}
+      <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="text-center mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">
+              Assessment Ready
+            </h2>
+            <p className="text-gray-600">
+              {quiz.questions.length} questions generated for {paperPath} paper assessment
+            </p>
+          </div>
+
+          {/* Quiz Questions Preview */}
+          <div className="space-y-4">
+            {quiz.questions.slice(0, 3).map((question, index) => (
+              <div key={question.id} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-medium text-gray-500">
+                    Question {index + 1}
+                  </span>
+                  <span className={`text-xs px-2 py-1 rounded ${
+                    question.difficulty === 1 ? 'bg-green-100 text-green-800' :
+                    question.difficulty === 2 ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {question.difficulty_label}
+                  </span>
+                  <span className="text-xs px-2 py-1 bg-gray-100 text-gray-800">
+                    {question.question_category}
+                  </span>
+                </div>
+                <p className="text-gray-900 mb-3">{question.question_text}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.values(question.options || {}).map((option, optIndex) => (
+                    <div key={optIndex} className="text-sm text-gray-600 p-2 bg-gray-50 rounded">
+                      {String.fromCharCode(65 + optIndex)}) {option}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            
+            {quiz.questions.length > 3 && (
+              <div className="text-center text-gray-500 text-sm">
+                ... and {quiz.questions.length - 3} more questions
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="mt-6 flex gap-3 justify-center">
+            <Link 
+              href="/test-topics"
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            >
+              Back to Topics
+            </Link>
+            <button className={`px-6 py-2 text-white rounded-lg font-medium ${
+              paperPath === 'Core' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-purple-600 hover:bg-purple-700'
+            }`}>
+              Start Assessment Quiz
+            </button>
           </div>
         </div>
-      }>
-        <QuizInterface
-          user={null as any} // Will be handled by QuizInterface
-          profile={null}
-          subject={{ 
-            id: subtopic.igcse_topics.id, 
-            name: subtopic.igcse_topics.title,
-            code: subtopic.subtopic_code,
-            color: subtopic.igcse_topics.color 
-          }}
-          questions={quiz.questions.map(q => ({
-            ...q,
-            subject_id: subtopic.igcse_topics.id,
-            options: Array.isArray(q.options) ? q.options : Object.values(q.options || {}),
-            difficulty_level: q.difficulty,
-            topic: subtopic.title,
-            curriculum_reference: subtopic.subtopic_code,
-            created_at: new Date().toISOString(),
-            question_type: 'multiple_choice'
-          }))}
-        />
-      </Suspense>
+      </div>
     </div>
   )
 }

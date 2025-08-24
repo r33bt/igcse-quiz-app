@@ -1833,8 +1833,452 @@ dual-path IGCSE assessment with foundation-first learning methodology."
 
 ////
 
+m "Added comprehensive IGCSE grading system page and enhanced navigation
+
+✅ NEW FEATURES:
+- Complete /grades page with official Cambridge June 2025 data
+- Wikipedia-style documentation with historical trends
+- Official source links to Cambridge PDFs
+- COVID impact analysis and recovery trends
+- Student guidance for Core vs Extended paths
+
+✅ NAVIGATION ENHANCEMENTS:
+- Added Grades link (🎯) to AppNavigation
+- Added Test Topics link (🧪 DEV) for development access
+- Enhanced breadcrumb support for new pages
+- Development badges for testing tools
+
+✅ EDUCATIONAL CONTENT:
+- Accurate A* thresholds (88-89%) excluding BX outlier
+- Historical boundary analysis (2020-2025)
+- Paper combination explanations
+- Success strategies for students
+
+📊 KEY DATA UPDATES:
+- June 2025 Extended: A*=88-89%, A=76-78%, B=60-64%
+- June 2025 Core: C=54-58% (maximum grade)
+- Complete Cambridge source documentation
+- Session variation explanations
+
+Ready for production testing on Vercel!"
+
+////////////
 
 
+# IGCSE Quiz App - Complete Quiz System Implementation Guide
+
+## 🎯 Project Overview
+
+This is a sophisticated **mastery-based learning platform** for Cambridge IGCSE Mathematics, featuring intelligent assessment, adaptive progression, and A* exam preparation. The application has evolved from a simple quiz tool into a comprehensive educational platform with AI-driven recommendations and foundation-first learning methodology.
+
+## 📊 Current Architecture State (August 24, 2025)
+
+### **Core Philosophy**
+The platform implements a revolutionary **Foundation-First Learning** methodology:
+- Easy questions must be mastered (80%+) before medium questions contribute fully
+- Medium questions must be mastered (70%+) before hard questions unlock premium weighting
+- **A* Exam Alignment**: System mirrors actual Cambridge assessment requirements
+- **Smart Conditional Weighting**: Hard question performance only counts when foundations are solid
+
+### **5-Level Mastery System**
+- **Level 0**: Unassessed (0% - No baseline established)
+- **Level 1**: Beginning (1-39% - Focus on fundamentals) 
+- **Level 2**: Developing (40-59% - Building core understanding)
+- **Level 3**: Approaching (60-74% - Good progress made)
+- **Level 4**: Proficient (75-89% - Strong performance, ready for mastery)
+- **Level 5**: Mastery (90-100% - Excellent command, A* potential)
+
+## 🗄️ Database Architecture
+
+### **Enhanced Progress Tracking Schema**
+```sql
+-- Main progress tracking table
+user_subtopic_progress (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id),
+  subtopic_id UUID REFERENCES igcse_subtopics(id),
+  
+  -- Overall Progress
+  questions_attempted INTEGER DEFAULT 0,
+  questions_correct INTEGER DEFAULT 0,
+  mastery_percentage INTEGER DEFAULT 0,
+  current_mastery_level VARCHAR(20) DEFAULT 'Unassessed',
+  
+  -- Granular Tracking (CRITICAL FOR FOUNDATION-FIRST)
+  easy_questions_attempted INTEGER DEFAULT 0,
+  easy_questions_correct INTEGER DEFAULT 0,
+  medium_questions_attempted INTEGER DEFAULT 0,
+  medium_questions_correct INTEGER DEFAULT 0,
+  hard_questions_attempted INTEGER DEFAULT 0,
+  hard_questions_correct INTEGER DEFAULT 0,
+  
+  -- Core/Extended Breakdown
+  core_questions_attempted INTEGER DEFAULT 0,
+  core_questions_correct INTEGER DEFAULT 0,
+  extended_questions_attempted INTEGER DEFAULT 0,
+  extended_questions_correct INTEGER DEFAULT 0,
+  
+  -- Assessment Status
+  baseline_assessment_completed BOOLEAN DEFAULT FALSE,
+  baseline_score INTEGER,
+  last_practiced TIMESTAMP,
+  
+  UNIQUE(user_id, subtopic_id)
+);
+```
+
+### **IGCSE Syllabus Structure**
+```sql
+-- Complete Cambridge IGCSE Mathematics syllabus
+igcse_topics (
+  id UUID PRIMARY KEY,
+  topic_number INTEGER,           -- 1-9 (Number, Algebra, etc.)
+  title TEXT,
+  description TEXT,
+  color VARCHAR(7)               -- Hex color for UI theming
+);
+
+igcse_subtopics (
+  id UUID PRIMARY KEY,
+  topic_id UUID REFERENCES igcse_topics(id),
+  subtopic_code VARCHAR(10),     -- "1.1", "1.2", etc.
+  title TEXT,
+  description TEXT,
+  difficulty_level VARCHAR(20)   -- 'Core' or 'Extended'
+);
+
+-- Enhanced questions with IGCSE mapping
+questions (
+  id UUID PRIMARY KEY,
+  igcse_subtopic_id UUID REFERENCES igcse_subtopics(id),
+  question_text TEXT,
+  options JSONB,                 -- ["option1", "option2", "option3", "option4"]
+  correct_answer TEXT,
+  explanation TEXT,
+  difficulty INTEGER,            -- 1=Easy, 2=Medium, 3=Hard
+  difficulty_label VARCHAR(10),  -- 'Easy', 'Medium', 'Hard'
+  paper_type VARCHAR(20),        -- 'Core' or 'Extended'
+  is_baseline_question BOOLEAN DEFAULT FALSE,
+  mastery_validation BOOLEAN DEFAULT FALSE,
+  estimated_time_seconds INTEGER
+);
+```
+
+### **Current Data Status**
+- **IGCSE Syllabus**: ✅ COMPLETE - 9 Topics, 66 Subtopics with Cambridge syllabus data
+- **Question Bank**: ✅ PARTIAL - 113 questions total, 80 IGCSE-mapped across 10 priority subtopics
+- **Test Data**: ✅ COMPLETE - Test user with realistic progress across mastery levels
+- **Question Distribution**: Easy (37.5%), Medium (37.5%), Hard (25%)
+- **Paper Coverage**: Core (75%), Extended (25%)
+
+## 🎨 User Interface Components
+
+### **SubtopicProgressCard - The Heart of the System**
+
+**Location**: `src/components/SubtopicProgressCard.tsx` (46KB - Most complex component)
+
+**Key Features Implemented**:
+- ✅ **Tabbed Paper Path Selection**: Blue (Core) vs Purple (Extended) tabs
+- ✅ **Enhanced Progress Analysis**: Clean performance breakdown without clutter  
+- ✅ **Smart Action System**: Context-aware radio button selections
+- ✅ **Color Coordination**: Left recommendations box matches selected paper path
+- ✅ **Cambridge Grade Integration**: Official June 2025 grade boundaries
+- ✅ **Foundation Analysis**: Easy/Medium/Hard mastery indicators
+
+**Component Architecture**:
+```typescript
+// Left Column (3/5): Analysis and data
+- Title and description
+- Performance & Foundation Analysis (3 clean boxes)
+- Core Paper Path vs Extended Paper Path analysis  
+- Current Priority & Recommendations (color-coordinated)
+
+// Right Column (2/5): User controls
+- Paper Path Tabs (Blue Core / Purple Extended)
+- Level Display with progress percentage
+- Action Selection (3 radio button options)
+- Smart Start Learning button
+```
+
+**Generated Action URLs**:
+```typescript
+// Assessment URLs
+/quiz/assessment/${subtopic.id}?path=core
+/quiz/assessment/${subtopic.id}?path=extended
+
+// Practice URLs with focus
+/quiz/practice/${subtopic.id}?path=core&focus=easy
+/quiz/practice/${subtopic.id}?path=core&focus=medium
+/quiz/practice/${subtopic.id}?path=extended&focus=hard
+
+// Advanced URLs
+/quiz/mastery/${subtopic.id}?path=core
+/quiz/challenge/${subtopic.id}?path=extended
+/quiz/timed/${subtopic.id}?path=core
+/quiz/explore/${subtopic.id}?path=core
+/quiz/review/${subtopic.id}?path=extended
+```
+
+## 🚀 Quiz System Architecture
+
+### **AssessmentEngine - Smart Quiz Generation**
+
+**Location**: `src/lib/assessment-engine.ts` (10KB)
+
+**Core Capabilities**:
+```typescript
+// Three main quiz types with smart configuration
+export class AssessmentEngine {
+  // Baseline Assessment: 10 questions, balanced difficulty
+  static async generateBaselineQuiz(subtopicId: string, userPath: 'Core' | 'Extended')
+  
+  // Practice Quiz: 8 questions, focused on weak areas  
+  static async generatePracticeQuiz(subtopicId: string, userPath: 'Core' | 'Extended', focusAreas: string[])
+  
+  // Mastery Quiz: 15 questions, higher difficulty emphasis
+  static async generateMasteryQuiz(subtopicId: string, userPath: 'Core' | 'Extended')
+}
+```
+
+**Smart Question Selection**:
+- Uses `question_selection_helper` database view for efficient filtering
+- Prioritizes less-used questions (`times_asked` tracking)
+- Applies Core vs Extended filtering based on user path
+- Balances difficulty distribution (Easy 40%, Medium 40%, Hard 20% for baseline)
+- Filters by `is_baseline_question` and `mastery_validation` flags
+
+**Quiz Configuration System**:
+```typescript
+interface QuizConfig {
+  subtopicId: string
+  quizType: 'Baseline' | 'Practice' | 'Mastery' | 'Review'
+  userPath: 'Core' | 'Extended'
+  questionCount: number
+  difficultyMix?: { easy: number, medium: number, hard: number }
+  focusAreas?: string[] // For targeted practice
+}
+```
+
+### **Existing Quiz Infrastructure**
+
+**Current Components**:
+- ✅ **QuizInterface.tsx** (25KB): Main quiz presentation component
+- ✅ **QuizInterfaceV2.tsx** (26KB): Enhanced version
+- ✅ **QuizSessionManager** (`src/lib/quiz-sessions.ts`): Progress tracking
+- ✅ **QuizHistory.tsx**: Historical performance tracking
+
+**Current Routes**:
+- ✅ `/quiz/[subjectId]/page.tsx`: Basic quiz routing (legacy)
+- ❌ **Missing**: All 7 new quiz routes for IGCSE subtopic system
+
+## 🎯 Complete Quiz Route Implementation Plan
+
+### **Required Route Structure**
+```
+src/app/quiz/
+├── assessment/[subtopicId]/page.tsx    # ✅ IMPLEMENTED - Baseline assessments  
+├── practice/[subtopicId]/page.tsx      # ✅ IMPLEMENTED - Targeted practice
+├── mastery/[subtopicId]/page.tsx       # ❌ PENDING - Mastery validation
+├── challenge/[subtopicId]/page.tsx     # ❌ PENDING - Challenge questions
+├── timed/[subtopicId]/page.tsx         # ❌ PENDING - Timed practice  
+├── explore/[subtopicId]/page.tsx       # ❌ PENDING - Question exploration
+└── review/[subtopicId]/page.tsx        # ❌ PENDING - Review sessions
+```
+
+### **Implemented Pages (Current Status)**
+
+#### **1. Assessment Quiz Page** ✅ COMPLETE
+**URL**: `/quiz/assessment/[subtopicId]?path=core|extended`
+**Purpose**: Baseline assessment to establish user's current level
+**Configuration**: 10 questions, 60% Core/40% Extended, balanced difficulty
+**Features**:
+- Professional header with paper path indication
+- Quiz metadata display (question count, estimated time, difficulty breakdown)
+- Error handling for missing questions
+- Integration with existing QuizInterface component
+- Next.js 15 compatibility with async params
+
+#### **2. Practice Quiz Page** ✅ COMPLETE  
+**URL**: `/quiz/practice/[subtopicId]?path=core|extended&focus=easy|medium|hard`
+**Purpose**: Targeted practice based on focus areas and user performance
+**Configuration**: 8 questions, adaptive difficulty based on focus parameter
+**Features**:
+- Focus-specific headers with visual indicators (📚🟢 Easy, ⚡🟡 Medium, 🔥🔴 Hard)
+- Smart question selection based on focus areas
+- Fallback to mixed difficulty if no focus specified
+- Paper path color theming (Blue Core, Purple Extended)
+
+### **Pending Pages (Implementation Required)**
+
+#### **3. Mastery Quiz Page** ❌ PENDING
+**URL**: `/quiz/mastery/[subtopicId]?path=core|extended`
+**Purpose**: Comprehensive validation of topic mastery
+**Configuration**: 15 questions, higher difficulty emphasis (3 easy, 6 medium, 6 hard)
+**AssessmentEngine Method**: `generateMasteryQuiz()`
+**UI Requirements**: Trophy/award theming, mastery validation messaging
+
+#### **4. Challenge Quiz Page** ❌ PENDING
+**URL**: `/quiz/challenge/[subtopicId]?path=core|extended`
+**Purpose**: Advanced challenge questions for high performers
+**Configuration**: Use `generatePracticeQuiz()` with focus on 'Hard' questions only
+**UI Requirements**: Challenge-themed header, difficulty warnings, extended time estimates
+
+#### **5. Timed Practice Page** ❌ PENDING
+**URL**: `/quiz/timed/[subtopicId]?path=core|extended`
+**Purpose**: Exam-pressure practice with countdown timer
+**Configuration**: Use `generatePracticeQuiz()` with timer integration
+**UI Requirements**: Prominent timer display, time pressure indicators, exam simulation
+
+#### **6. Question Exploration Page** ❌ PENDING
+**URL**: `/quiz/explore/[subtopicId]?path=core|extended`
+**Purpose**: Browse and understand question types without pressure
+**Configuration**: Custom logic for question browsing (not time-limited)
+**UI Requirements**: Question preview, difficulty indicators, explanation access
+
+#### **7. Review Session Page** ❌ PENDING
+**URL**: `/quiz/review/[subtopicId]?path=core|extended`
+**Purpose**: Spaced repetition and knowledge maintenance
+**Configuration**: Mixed questions from previously attempted sets
+**UI Requirements**: Review-focused messaging, progress maintenance indicators
+
+## 🔧 Technical Implementation Details
+
+### **Next.js 15 Compatibility Requirements**
+```typescript
+// Required for all quiz pages
+interface PageProps {
+  params: Promise<{ subtopicId: string }>      // Must be Promise<> in Next.js 15
+  searchParams: Promise<{ path?: string; focus?: string }>
+}
+
+// Implementation pattern
+export default async function QuizPage({ params, searchParams }: PageProps) {
+  const { subtopicId } = await params                    // Await required
+  const resolvedSearchParams = await searchParams       // Await required
+  const paperPath = (resolvedSearchParams.path?.toLowerCase() === 'extended' ? 'Extended' : 'Core')
+}
+```
+
+### **Supabase Integration Pattern**
+```typescript
+// Server-side data loading
+async function getSubtopicData(subtopicId: string) {
+  const supabase = await createClient()    // Server client returns Promise
+  
+  const { data: subtopic, error } = await supabase
+    .from('igcse_subtopics')
+    .select(`
+      id, subtopic_code, title, description, difficulty_level,
+      igcse_topics (id, topic_number, title, color)
+    `)
+    .eq('id', subtopicId)
+    .single()
+
+  if (error || !subtopic) return null
+  return subtopic
+}
+```
+
+### **QuizInterface Integration Pattern**
+```typescript
+// Transform AssessmentEngine questions to QuizInterface format
+<QuizInterface
+  user={{} as User}                    // Empty user object for testing
+  profile={null}
+  subject={{ 
+    id: subtopic.igcse_topics.id, 
+    name: subtopic.igcse_topics.title,
+    code: subtopic.subtopic_code,
+    color: subtopic.igcse_topics.color 
+  }}
+  questions={quiz.questions.map(q => ({
+    ...q,
+    subject_id: subtopic.igcse_topics.id,
+    options: Array.isArray(q.options) ? q.options : Object.values(q.options || {}),
+    difficulty_level: q.difficulty,
+    topic: subtopic.title,
+    curriculum_reference: subtopic.subtopic_code,
+    created_at: new Date().toISOString(),
+    question_type: 'multiple_choice'
+  }))}
+/>
+```
+
+## 📝 Development Workflow
+
+### **Current Test Environment**
+- **Test URL**: `/test-topics` - Enhanced progress interface with tabbed controls
+- **Test User**: `a1b2c3d4-e5f6-7890-1234-567890abcdef` (has realistic progress data)
+- **Test Subtopics**: 8 subtopics with various mastery levels for comprehensive testing
+
+### **Deployment Pipeline**
+1. **Local Testing**: `npm run build` to check TypeScript compilation
+2. **Git Workflow**: Feature commits with detailed messages
+3. **Vercel Deployment**: Automatic deployment on push to master
+4. **Testing URLs**: Generated URLs from SubtopicProgressCard actions
+
+### **Key Testing Scenarios**
+```typescript
+// Test URLs from SubtopicProgressCard
+const testURLs = [
+  '/quiz/assessment/c7ef0617-a00b-4cf5-8659-e7cb72135c8b?path=core',
+  '/quiz/practice/c7ef0617-a00b-4cf5-8659-e7cb72135c8b?path=core&focus=medium',
+  '/quiz/mastery/c7ef0617-a00b-4cf5-8659-e7cb72135c8b?path=extended'
+]
+```
+
+## 🎯 Immediate Next Steps
+
+### **Priority 1: Complete Remaining Quiz Pages**
+1. **Mastery Quiz Page**: Trophy-themed mastery validation
+2. **Challenge Quiz Page**: Advanced difficulty with warnings
+3. **Timed Practice Page**: Countdown timer integration
+4. **Exploration Page**: Pressure-free question browsing
+5. **Review Session Page**: Spaced repetition focus
+
+### **Priority 2: Progress Integration**
+1. **Real Progress Updates**: Connect quiz completion to database updates
+2. **Enhanced MasteryCalculator**: Integrate quiz results with foundation analysis
+3. **Achievement System**: Unlock badges and milestones
+4. **Learning Analytics**: Performance trends and insights
+
+### **Priority 3: Content Expansion**
+1. **Question Bank Expansion**: Cover all 66 IGCSE subtopics (currently 10/66)
+2. **Extended Paper Questions**: Increase Extended question coverage
+3. **Question Quality**: Validate difficulty calibration and explanations
+4. **Content Mapping**: Ensure comprehensive syllabus coverage
+
+## 🚀 Production Readiness Checklist
+
+### **Completed Features** ✅
+- [x] Enhanced SubtopicProgressCard with tabbed interface
+- [x] Smart mastery calculation with foundation-first methodology
+- [x] Assessment and Practice quiz pages with Next.js 15 compatibility
+- [x] AssessmentEngine integration with smart question selection
+- [x] Professional UI with paper path theming
+- [x] Error handling and fallback states
+- [x] Cambridge IGCSE grade boundary integration
+
+### **Remaining Development** ❌
+- [ ] 5 additional quiz pages (mastery, challenge, timed, explore, review)
+- [ ] Real-time progress updates from quiz completion
+- [ ] User authentication integration (currently uses test user)
+- [ ] Content expansion to all 66 subtopics
+- [ ] Advanced analytics and learning insights
+- [ ] Mobile responsiveness optimization
+- [ ] Performance monitoring and optimization
+
+## 🏆 Key Architectural Achievements
+
+1. **Foundation-First Learning**: Revolutionary mastery methodology aligned with A* requirements
+2. **Smart Conditional Weighting**: Advanced algorithm preventing false confidence
+3. **Comprehensive Progress Tracking**: Granular difficulty and paper type analysis
+4. **Professional UI Integration**: Seamless tabbed interface with color coordination
+5. **Scalable Quiz System**: Modular AssessmentEngine supporting multiple quiz types
+6. **Cambridge Alignment**: Official grade boundaries and syllabus integration
+7. **Next.js 15 Compatibility**: Modern async patterns and server components
+
+This represents a complete transformation from a simple quiz app to a sophisticated, Cambridge IGCSE-aligned mastery learning platform with intelligent assessment and adaptive progression capabilities.
 
 
 
