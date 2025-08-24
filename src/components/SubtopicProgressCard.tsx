@@ -66,7 +66,7 @@ const getMasteryLevel = (masteryLevel: MasteryLevel): { level: number, label: st
     'Proficient': { level: 4, label: 'Proficient', color: 'bg-blue-100 text-blue-700 border-blue-200' },
     'Mastery': { level: 5, label: 'Mastery', color: 'bg-green-100 text-green-700 border-green-200' }
   }
-  return levelMap[masteryLevel]
+  return levelMap[masteryLevel] || levelMap['Unassessed']
 }
 
 // Core/Extended performance section
@@ -106,7 +106,7 @@ export default function SubtopicProgressCard({
   availability 
 }: SubtopicProgressCardProps) {
   
-  const masteryInfo = getMasteryLevel(progress?.mastery_level || 'Unassessed')
+  const masteryInfo = getMasteryLevel(progress?.mastery_level || 'Unassessed') || { level: 0, label: 'Unassessed', color: 'bg-gray-100 text-gray-700 border-gray-200' }
   
   // Calculate Core/Extended breakdown
   const getPerformanceData = () => {
