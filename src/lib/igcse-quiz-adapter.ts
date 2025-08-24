@@ -76,75 +76,73 @@ export class IGCSEQuizAdapter {
   }
 
   /**
-   * Safe question data transformation with validation
+   * Enhanced question data transformation with better options handling
    */
-  /**
- * Enhanced question data transformation with better options handling
- */
-static adaptQuestionData(
-  questions: AssessmentQuestion[], 
-  subtopic: IGCSESubtopic
-): QuizQuestion[] {
-  const subjectId = subtopic.igcse_topics?.id || subtopic.id || 'default-topic'
-  
-  return questions.map(q => {
-    // Enhanced options handling with multiple strategies
-    let options: string[] = []
+  static adaptQuestionData(
+    questions: AssessmentQuestion[], 
+    subtopic: IGCSESubtopic
+  ): QuizQuestion[] {
+    const subjectId = subtopic.igcse_topics?.id || subtopic.id || 'default-topic'
     
-    try {
-      if (Array.isArray(q.options)) {
-        options = q.options.filter(opt => opt && opt.trim())
-      } else if (q.options && typeof q.options === 'object') {
-        // Handle both object and string-ified JSON
-        const optionsObj = typeof q.options === 'string' ? JSON.parse(q.options) : q.options
-        if (Array.isArray(optionsObj)) {
-          options = optionsObj.filter(opt => opt && opt.trim())
-        } else {
-          options = Object.values(optionsObj).filter(opt => opt && opt.trim())
-        }
-      } else if (typeof q.options === 'string') {
-        // Try to parse as JSON array
-        try {
-          const parsed = JSON.parse(q.options)
-          if (Array.isArray(parsed)) {
-            options = parsed.filter(opt => opt && opt.trim())
-          } else {
-            throw new Error('Not an array')
-          }
-        } catch {
-          // Fallback: split by common delimiters
-          options = q.options.split(/[,;|]/).map(s => s.trim()).filter(s => s)
-        }
-      }
+    return questions.map(q => {
+      // Enhanced options handling with multiple strategies
+      let options: string[] = []
       
-      // Validate we have at least 2 options
-      if (options.length < 2) {
-        console.warn('Insufficient options for question:', q.id, 'options:', q.options)
+      try {
+        if (Array.isArray(q.options)) {
+          options = q.options.filter((opt): opt is string => typeof opt === 'string' && opt.trim().length > 0)
+        } else if (q.options && typeof q.options === 'object') {
+          // Handle both object and string-ified JSON
+          const optionsObj = typeof q.options === 'string' ? JSON.parse(q.options) : q.options
+          if (Array.isArray(optionsObj)) {
+            options = optionsObj.filter((opt): opt is string => typeof opt === 'string' && opt.trim().length > 0)
+          } else {
+            options = Object.values(optionsObj)
+              .filter((opt): opt is string => typeof opt === 'string' && opt.trim().length > 0)
+          }
+        } else if (typeof q.options === 'string') {
+          // Try to parse as JSON array first
+          try {
+            const parsed = JSON.parse(q.options)
+            if (Array.isArray(parsed)) {
+              options = parsed.filter((opt): opt is string => typeof opt === 'string' && opt.trim().length > 0)
+            } else {
+              throw new Error('Not an array')
+            }
+          } catch {
+            // Fallback: split by common delimiters
+            const stringOptions = q.options as string // Type assertion since we know it's a string here
+            options = stringOptions.split(/[,;|]/).map(s => s.trim()).filter(s => s.length > 0)
+          }
+        }
+        
+        // Validate we have at least 2 options
+        if (options.length < 2) {
+          console.warn('Insufficient options for question:', q.id, 'options:', q.options)
+          options = ['Option A', 'Option B', 'Option C', 'Option D']
+        }
+        
+      } catch (error) {
+        console.error('Failed to parse options for question:', q.id, error)
         options = ['Option A', 'Option B', 'Option C', 'Option D']
       }
-      
-    } catch (error) {
-      console.error('Failed to parse options for question:', q.id, error)
-      options = ['Option A', 'Option B', 'Option C', 'Option D']
-    }
 
-    return {
-      id: q.id || `question-${Math.random()}`,
-      subject_id: subjectId,
-      question_text: q.question_text || 'Question text missing',
-      options: options,
-      correct_answer: q.correct_answer || options[0] || 'A',
-      explanation: q.explanation || null,
-      difficulty: q.difficulty || 1,
-      difficulty_level: q.difficulty || 1,
-      topic: subtopic.title || 'Mathematics',
-      curriculum_reference: subtopic.subtopic_code || '1.1',
-      created_at: new Date().toISOString(),
-      question_type: 'multiple_choice'
-    }
-  })
-}
-
+      return {
+        id: q.id || `question-${Math.random()}`,
+        subject_id: subjectId,
+        question_text: q.question_text || 'Question text missing',
+        options: options,
+        correct_answer: q.correct_answer || options[0] || 'A',
+        explanation: q.explanation || null,
+        difficulty: q.difficulty || 1,
+        difficulty_level: q.difficulty || 1,
+        topic: subtopic.title || 'Mathematics',
+        curriculum_reference: subtopic.subtopic_code || '1.1',
+        created_at: new Date().toISOString(),
+        question_type: 'multiple_choice'
+      }
+    })
+  }
 
   /**
    * Safe user data transformation
