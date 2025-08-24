@@ -130,19 +130,15 @@ const getNextGradeTarget = (percentage: number, paperType: 'Core' | 'Extended') 
   }
 }
 
-// Enhanced performance section with subtotals
-const CompactPerformanceBox = ({ 
+// 🎨 CLEAN & SIMPLE PERFORMANCE BOX (NO TICKS, NO CLUTTER)
+const SimplePerformanceBox = ({ 
   title, 
   data, 
-  color,
-  masteryStatus,
-  showSubtotal = true
+  color
 }: { 
   title: string
   data: { easy: number[], medium: number[], hard: number[] }
   color: string
-  masteryStatus?: { easy: boolean, medium: boolean, hard: boolean }
-  showSubtotal?: boolean
 }) => {
   // Calculate subtotal
   const totalAttempted = data.easy[1] + data.medium[1] + data.hard[1]
@@ -156,20 +152,14 @@ const CompactPerformanceBox = ({
         {Object.entries(data).map(([difficulty, values]) => {
           const [correct, attempted] = values as [number, number]
           const percentage = attempted > 0 ? Math.round((correct / attempted) * 100) : 0
-          const isMastered = masteryStatus && masteryStatus[difficulty as keyof typeof masteryStatus]
           
           return (
             <div key={difficulty} className="flex justify-between items-center">
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-gray-500 capitalize">{difficulty}:</span>
-                {isMastered && <CheckCircle2 className="h-3 w-3 text-green-500" />}
-              </div>
+              <span className="text-xs text-gray-500 capitalize">{difficulty}:</span>
               <div className="flex items-center gap-1">
                 <span className="text-xs font-medium text-gray-800">{correct}/{attempted}</span>
                 {attempted > 0 && (
-                  <span className={`text-xs ${isMastered ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
-                    ({percentage}%)
-                  </span>
+                  <span className="text-xs text-gray-400">({percentage}%)</span>
                 )}
               </div>
             </div>
@@ -177,7 +167,7 @@ const CompactPerformanceBox = ({
         })}
         
         {/* SUBTOTAL ROW */}
-        {showSubtotal && totalAttempted > 0 && (
+        {totalAttempted > 0 && (
           <>
             <div className="border-t border-gray-200 my-1"></div>
             <div className="flex justify-between items-center">
@@ -379,7 +369,7 @@ export default function SubtopicProgressCard({
                          extendedPercentage >= 40 ? 2 :
                          extendedPercentage >= 1 ? 1 : 0
 
-    // Foundation analysis
+    // Foundation analysis - SIMPLIFIED
     const easyPercentage = progress.easy_questions_attempted > 0 
       ? Math.round((progress.easy_questions_correct / progress.easy_questions_attempted) * 100) 
       : 0
@@ -719,7 +709,7 @@ export default function SubtopicProgressCard({
               </div>
             </div>
 
-            {/* ENHANCED: Performance Analysis with Subtotals */}
+            {/* 🎨 CLEAN & SIMPLE PERFORMANCE ANALYSIS */}
             {progress && progress.questions_attempted > 0 && (
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
                 <h4 className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2">
@@ -727,40 +717,22 @@ export default function SubtopicProgressCard({
                   Performance & Foundation Analysis
                 </h4>
                 
-                {/* Performance Breakdown with Subtotals */}
+                {/* Clean Performance Breakdown - NO TICKS, NO CLUTTER */}
                 <div className="grid grid-cols-3 gap-3">
-                  <CompactPerformanceBox
+                  <SimplePerformanceBox
                     title="Core"
                     data={performanceData.core}
                     color="bg-blue-25 border-blue-100"
-                    masteryStatus={{
-                      easy: dualPathData.foundation.easyMastered,
-                      medium: dualPathData.foundation.mediumMastered,
-                      hard: dualPathData.foundation.hardReady
-                    }}
-                    showSubtotal={true}
                   />
-                  <CompactPerformanceBox
+                  <SimplePerformanceBox
                     title="Extended" 
                     data={performanceData.extended}
                     color="bg-purple-25 border-purple-100"
-                    masteryStatus={{
-                      easy: dualPathData.foundation.easyMastered,
-                      medium: dualPathData.foundation.mediumMastered,
-                      hard: dualPathData.foundation.hardReady
-                    }}
-                    showSubtotal={true}
                   />
-                  <CompactPerformanceBox
+                  <SimplePerformanceBox
                     title="All Qs" 
                     data={performanceData.all}
                     color="bg-green-25 border-green-100"
-                    masteryStatus={{
-                      easy: dualPathData.foundation.easyMastered,
-                      medium: dualPathData.foundation.mediumMastered,
-                      hard: dualPathData.foundation.hardReady
-                    }}
-                    showSubtotal={true}
                   />
                 </div>
               </div>
@@ -861,23 +833,23 @@ export default function SubtopicProgressCard({
               </div>
             )}
 
-            {/* COMBINED: Current Priority + Insight */}
-            <div className="bg-green-25 p-3 rounded-lg border border-green-100">
-              <h4 className="text-sm font-medium text-green-800 mb-2 flex items-center gap-2">
+            {/* 🎨 MATCHING STYLED RECOMMENDATIONS BOX */}
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+              <h4 className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2">
                 <Target className="h-4 w-4" />
                 Current Priority & Recommendations
               </h4>
-              <div className="text-xs text-green-700 space-y-1">
+              <div className="text-xs text-gray-700 space-y-1">
                 {recommendations.map((rec, index) => (
                   <div key={index}>• {rec}</div>
                 ))}
                 
                 {/* Combined Smart Insight */}
                 {progress && progress.questions_attempted > 0 && (
-                  <div className="mt-2 pt-2 border-t border-green-200">
+                  <div className="mt-2 pt-2 border-t border-gray-200">
                     <div className="flex items-center gap-1 mb-1">
-                      <Lightbulb className="h-3 w-3 text-green-600" />
-                      <span className="font-medium text-green-800">Key Insight:</span>
+                      <Lightbulb className="h-3 w-3 text-gray-600" />
+                      <span className="font-medium text-gray-700">Key Insight:</span>
                     </div>
                     <div>
                       {dualPathData.foundation.easyMastered && dualPathData.foundation.mediumMastered ? 
