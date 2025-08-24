@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { AssessmentEngine } from '@/lib/assessment-engine'
 import { IGCSEQuizAdapter, type IGCSESubtopic } from '@/lib/igcse-quiz-adapter'
+import { ProgressInterceptor } from '@/lib/progress-interceptor'
 import QuizInterfaceV2 from '@/components/QuizInterfaceV2'
 import { Card, CardContent } from '@/components/ui/card'
 import { Target, ArrowLeft, Loader2 } from 'lucide-react'
@@ -91,6 +91,73 @@ export default function AssessmentQuizPage({ params, searchParams }: PageProps) 
     loadQuizData()
   }
 
+  // Enhanced quiz completion handler
+  const handleQuizComplete = async (results: any) => {
+    try {
+      console.log('📊 Quiz completed, updating IGCSE progress...', results)
+      
+      // Extract results - handle different result formats
+      let quizResults: any[] = []
+      
+      if (results.answers && Array.isArray(results.answers)) {
+        // Format 1: results.answers array
+        quizResults = results.answers.map((answer: any, index: number) => ({
+          questionId: quiz.questions[index]?.id || `q-${index}`,
+          userAnswer: answer.selectedAnswer || answer.answer || '',
+          correctAnswer: quiz.questions[index]?.correct_answer || '',
+          isCorrect: answer.isCorrect ?? (answer.selectedAnswer === quiz.questions[index]?.correct_answer),
+          difficulty: quiz.questions[index]?.difficulty || 1,
+          paperType: quiz.questions[index]?.paper_type || 'Core'
+        }))
+      } else if (results.questions && Array.isArray(results.questions)) {
+        // Format 2: results.questions array
+        quizResults = results.questions.map((q: any) => ({
+          questionId: q.id || 'unknown',
+          userAnswer: q.userAnswer || q.selectedAnswer || '',
+          correctAnswer: q.correct_answer || '',
+          isCorrect: q.isCorrect ?? (q.userAnswer === q.correct_answer),
+          difficulty: q.difficulty || 1,
+          paperType: q.paper_type || 'Core'
+        }))
+      } else {
+        // Format 3: Direct results array
+        quizResults = (Array.isArray(results) ? results : []).map((item: any, index: number) => ({
+          questionId: quiz.questions[index]?.id || `q-${index}`,
+          userAnswer: item.userAnswer || item.selectedAnswer || '',
+          correctAnswer: quiz.questions[index]?.correct_answer || '',
+          isCorrect: item.isCorrect ?? false,
+          difficulty: quiz.questions[index]?.difficulty || 1,
+          paperType: quiz.questions[index]?.paper_type || 'Core'
+        }))
+      }
+      
+      console.log('📈 Processed quiz results:', quizResults)
+      
+      // Update IGCSE progress
+      const adaptedUser = IGCSEQuizAdapter.adaptUserData(user)
+      await ProgressInterceptor.updateIGCSEProgress(
+        adaptedUser.id,
+        subtopicId,
+        quizResults
+      )
+      
+      console.log('✅ Progress updated successfully!')
+      
+      // Navigate back to progress view
+      setTimeout(() => {
+        window.location.href = '/test-topics?completed=assessment&subtopic=' + subtopicId
+      }, 2000)
+      
+    } catch (error) {
+      console.error('❌ Failed to update progress:', error)
+      alert('Quiz completed but failed to save progress. Please try again.')
+    }
+  }
+
+  const handleQuizExit = () => {
+    window.location.href = '/test-topics'
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -144,6 +211,8 @@ export default function AssessmentQuizPage({ params, searchParams }: PageProps) 
           profile={null}
           subject={IGCSEQuizAdapter.adaptSubjectData(subtopic)}
           questions={IGCSEQuizAdapter.adaptQuestionData(quiz.questions, subtopic)}
+          onQuizComplete={handleQuizComplete}
+          onExit={handleQuizExit}
         />
       )
     } catch (error) {

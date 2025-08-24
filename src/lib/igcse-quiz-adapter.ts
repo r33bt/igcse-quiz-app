@@ -78,41 +78,73 @@ export class IGCSEQuizAdapter {
   /**
    * Safe question data transformation with validation
    */
-  static adaptQuestionData(
-    questions: AssessmentQuestion[], 
-    subtopic: IGCSESubtopic
-  ): QuizQuestion[] {
-    // Get fallback subject ID
-    const subjectId = subtopic.igcse_topics?.id || subtopic.id || 'default-topic'
+  /**
+ * Enhanced question data transformation with better options handling
+ */
+static adaptQuestionData(
+  questions: AssessmentQuestion[], 
+  subtopic: IGCSESubtopic
+): QuizQuestion[] {
+  const subjectId = subtopic.igcse_topics?.id || subtopic.id || 'default-topic'
+  
+  return questions.map(q => {
+    // Enhanced options handling with multiple strategies
+    let options: string[] = []
     
-    return questions.map(q => {
-      // Handle options safely
-      let options: string[] = []
+    try {
       if (Array.isArray(q.options)) {
-        options = q.options
+        options = q.options.filter(opt => opt && opt.trim())
       } else if (q.options && typeof q.options === 'object') {
-        options = Object.values(q.options)
-      } else {
-        console.warn('Invalid options for question:', q.id)
-        options = ['Option A', 'Option B', 'Option C', 'Option D'] // Fallback
+        // Handle both object and string-ified JSON
+        const optionsObj = typeof q.options === 'string' ? JSON.parse(q.options) : q.options
+        if (Array.isArray(optionsObj)) {
+          options = optionsObj.filter(opt => opt && opt.trim())
+        } else {
+          options = Object.values(optionsObj).filter(opt => opt && opt.trim())
+        }
+      } else if (typeof q.options === 'string') {
+        // Try to parse as JSON array
+        try {
+          const parsed = JSON.parse(q.options)
+          if (Array.isArray(parsed)) {
+            options = parsed.filter(opt => opt && opt.trim())
+          } else {
+            throw new Error('Not an array')
+          }
+        } catch {
+          // Fallback: split by common delimiters
+          options = q.options.split(/[,;|]/).map(s => s.trim()).filter(s => s)
+        }
       }
+      
+      // Validate we have at least 2 options
+      if (options.length < 2) {
+        console.warn('Insufficient options for question:', q.id, 'options:', q.options)
+        options = ['Option A', 'Option B', 'Option C', 'Option D']
+      }
+      
+    } catch (error) {
+      console.error('Failed to parse options for question:', q.id, error)
+      options = ['Option A', 'Option B', 'Option C', 'Option D']
+    }
 
-      return {
-        id: q.id || `question-${Math.random()}`,
-        subject_id: subjectId,
-        question_text: q.question_text || 'Question text missing',
-        options: options,
-        correct_answer: q.correct_answer || options[0] || 'A',
-        explanation: q.explanation || null,
-        difficulty: q.difficulty || 1,
-        difficulty_level: q.difficulty || 1,
-        topic: subtopic.title || 'Mathematics',
-        curriculum_reference: subtopic.subtopic_code || '1.1',
-        created_at: new Date().toISOString(),
-        question_type: 'multiple_choice'
-      }
-    })
-  }
+    return {
+      id: q.id || `question-${Math.random()}`,
+      subject_id: subjectId,
+      question_text: q.question_text || 'Question text missing',
+      options: options,
+      correct_answer: q.correct_answer || options[0] || 'A',
+      explanation: q.explanation || null,
+      difficulty: q.difficulty || 1,
+      difficulty_level: q.difficulty || 1,
+      topic: subtopic.title || 'Mathematics',
+      curriculum_reference: subtopic.subtopic_code || '1.1',
+      created_at: new Date().toISOString(),
+      question_type: 'multiple_choice'
+    }
+  })
+}
+
 
   /**
    * Safe user data transformation
