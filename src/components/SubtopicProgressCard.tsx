@@ -11,7 +11,8 @@ import {
   RefreshCw, 
   Clock,
   Award,
-  TrendingUp
+  TrendingUp,
+  Lightbulb
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -58,13 +59,38 @@ interface SubtopicProgressCardProps {
 }
 
 // Convert mastery level to simple level system (0-5)
-const getMasteryLevel = (masteryLevel: MasteryLevel): { level: number, label: string, color: string } => {
+const getMasteryLevel = (masteryLevel: MasteryLevel): { level: number, label: string, color: string, description: string } => {
   const levelMap = {
-    'Unassessed': { level: 0, label: 'Unassessed', color: 'bg-gray-100 text-gray-700 border-gray-200' },
-    'Developing': { level: 2, label: 'Developing', color: 'bg-orange-100 text-orange-700 border-orange-200' },
-    'Approaching': { level: 3, label: 'Approaching', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-    'Proficient': { level: 4, label: 'Proficient', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-    'Mastery': { level: 5, label: 'Mastery', color: 'bg-green-100 text-green-700 border-green-200' }
+    'Unassessed': { 
+      level: 0, 
+      label: 'Unassessed', 
+      color: 'bg-gray-100 text-gray-700 border-gray-200',
+      description: 'No baseline established yet. Take an assessment to see your current level.'
+    },
+    'Developing': { 
+      level: 2, 
+      label: 'Developing', 
+      color: 'bg-orange-100 text-orange-700 border-orange-200',
+      description: 'Building foundational understanding. Focus on core concepts and practice.'
+    },
+    'Approaching': { 
+      level: 3, 
+      label: 'Approaching', 
+      color: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+      description: 'Good progress made. Challenge yourself with harder questions.'
+    },
+    'Proficient': { 
+      level: 4, 
+      label: 'Proficient', 
+      color: 'bg-blue-100 text-blue-700 border-blue-200',
+      description: 'Strong understanding demonstrated. Ready to attempt mastery.'
+    },
+    'Mastery': { 
+      level: 5, 
+      label: 'Mastery', 
+      color: 'bg-green-100 text-green-700 border-green-200',
+      description: 'Excellent command of this topic. Maintain with periodic review.'
+    }
   }
   return levelMap[masteryLevel] || levelMap['Unassessed']
 }
@@ -79,10 +105,11 @@ const PerformanceColumn = ({
   data: { easy: number[], medium: number[], hard: number[] }
   color: string 
 }) => (
-  <div className="space-y-3">
+  <div className="space-y-2">
     <h4 className={`text-sm font-semibold ${color} uppercase tracking-wide`}>{title}</h4>
-    <div className="space-y-2">
-      {Object.entries(data).map(([difficulty, [correct, attempted]]) => {
+    <div className="space-y-1">
+      {Object.entries(data).map(([difficulty, values]) => {
+        const [correct, attempted] = values as [number, number]
         const percentage = attempted > 0 ? Math.round((correct / attempted) * 100) : 0
         return (
           <div key={difficulty} className="flex justify-between items-center">
@@ -106,7 +133,12 @@ export default function SubtopicProgressCard({
   availability 
 }: SubtopicProgressCardProps) {
   
-  const masteryInfo = getMasteryLevel(progress?.mastery_level || 'Unassessed') || { level: 0, label: 'Unassessed', color: 'bg-gray-100 text-gray-700 border-gray-200' }
+  const masteryInfo = getMasteryLevel(progress?.mastery_level || 'Unassessed') || { 
+    level: 0, 
+    label: 'Unassessed', 
+    color: 'bg-gray-100 text-gray-700 border-gray-200',
+    description: 'No baseline established yet. Take an assessment to see your current level.'
+  }
   
   // Calculate Core/Extended breakdown
   const getPerformanceData = () => {
@@ -140,25 +172,63 @@ export default function SubtopicProgressCard({
 
     return {
       core: {
-        easy: [Math.max(0, coreEasyCorrect), Math.max(0, coreEasy)] as [number, number],
-        medium: [Math.max(0, coreMediumCorrect), Math.max(0, coreMedium)] as [number, number],
-        hard: [Math.max(0, coreHardCorrect), Math.max(0, coreHard)] as [number, number]
+        easy: [Math.max(0, coreEasyCorrect), Math.max(0, coreEasy)],
+        medium: [Math.max(0, coreMediumCorrect), Math.max(0, coreMedium)],
+        hard: [Math.max(0, coreHardCorrect), Math.max(0, coreHard)]
       },
       extended: {
-        easy: [Math.max(0, extendedEasyCorrect), Math.max(0, extendedEasy)] as [number, number],
-        medium: [Math.max(0, extendedMediumCorrect), Math.max(0, extendedMedium)] as [number, number],
-        hard: [Math.max(0, extendedHardCorrect), Math.max(0, extendedHard)] as [number, number]
+        easy: [Math.max(0, extendedEasyCorrect), Math.max(0, extendedEasy)],
+        medium: [Math.max(0, extendedMediumCorrect), Math.max(0, extendedMedium)],
+        hard: [Math.max(0, extendedHardCorrect), Math.max(0, extendedHard)]
       }
     }
   }
 
   const performanceData = getPerformanceData()
 
+  // Generate analysis and recommendations
+  const getAnalysisAndRecommendations = () => {
+    if (!progress || progress.questions_attempted === 0) {
+      return {
+        analysis: "",
+        recommendations: ["Start with the assessment to establish your baseline performance."]
+      }
+    }
+
+    const easyAccuracy = progress.easy_questions_attempted > 0 ? Math.round((progress.easy_questions_correct / progress.easy_questions_attempted) * 100) : 0
+    const mediumAccuracy = progress.medium_questions_attempted > 0 ? Math.round((progress.medium_questions_correct / progress.medium_questions_attempted) * 100) : 0
+    const hardAccuracy = progress.hard_questions_attempted > 0 ? Math.round((progress.hard_questions_correct / progress.hard_questions_attempted) * 100) : 0
+
+    let analysis = ""
+    const recommendations = []
+
+    if (easyAccuracy >= 80 && mediumAccuracy >= 70) {
+      analysis = "Strong foundation established. Ready for more challenging questions."
+      if (hardAccuracy < 60) {
+        recommendations.push("Focus on hard questions to reach the next level.")
+      }
+    } else if (easyAccuracy >= 70) {
+      analysis = "Good grasp of basics. Work on applying concepts in different contexts."
+      recommendations.push("Practice medium difficulty questions to improve understanding.")
+    } else {
+      analysis = "Focus on building fundamental understanding of core concepts."
+      recommendations.push("Review basic concepts and practice easy questions first.")
+    }
+
+    if (progress.questions_attempted < 20) {
+      recommendations.push("Take more practice questions for better assessment accuracy.")
+    }
+
+    return { analysis, recommendations }
+  }
+
+  const { analysis, recommendations } = getAnalysisAndRecommendations()
+
   // Smart action buttons
   const getActionButton = () => {
     if (!availability || availability.total === 0) {
       return (
-        <Badge variant="secondary" className="text-gray-500">
+        <Badge variant="secondary" className="text-gray-500 w-full justify-center py-2">
           No Questions Available
         </Badge>
       )
@@ -206,14 +276,12 @@ export default function SubtopicProgressCard({
           <div className="space-y-2">
             <div className="flex items-center justify-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
               <CheckCircle2 className="h-5 w-5 text-green-600" />
-              <Badge className="bg-green-100 text-green-800 border-green-300 font-medium">
-                ✅ Level 5 Mastery
-              </Badge>
+              <span className="text-sm font-medium text-green-800">Level 5 Mastery Achieved</span>
             </div>
             <Link href={`/quiz/review/${subtopic.id}`}>
               <Button variant="outline" className="w-full py-2 rounded-lg">
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Review
+                Periodic Review
               </Button>
             </Link>
           </div>
@@ -223,7 +291,7 @@ export default function SubtopicProgressCard({
           <Link href={`/quiz/assessment/${subtopic.id}`}>
             <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg">
               <Target className="h-4 w-4 mr-2" />
-              Start Quiz
+              Start Assessment
             </Button>
           </Link>
         )
@@ -233,63 +301,97 @@ export default function SubtopicProgressCard({
   return (
     <Card className="hover:shadow-lg transition-all duration-200 border rounded-xl bg-white">
       <CardContent className="p-6">
-        <div className="space-y-6">
-          {/* TOP SECTION: Title + Subtitle + Icon (LEFT) and Level (RIGHT) */}
-          <div className="flex items-start justify-between">
-            {/* LEFT: Title + Subtitle + Icon grouped together */}
-            <div className="flex items-start gap-3 flex-1">
+        {/* TWO-COLUMN LAYOUT: 2/3 + 1/3 */}
+        <div className="grid grid-cols-3 gap-6">
+          
+          {/* LEFT COLUMN (2/3): Title + Content + Analysis */}
+          <div className="col-span-2 space-y-4">
+            {/* Title and Subtitle with Icon */}
+            <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                 <BookOpen className="h-5 w-5 text-blue-600" />
               </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+              <div className="flex-1">
+                <h3 className="text-2xl font-bold text-gray-900 mb-1">
                   {subtopic.subtopic_code} {subtopic.title}
                 </h3>
-                <p className="text-gray-600 text-base leading-relaxed font-medium">
+                <p className="text-gray-600 text-base leading-relaxed">
                   {subtopic.description}
                 </p>
               </div>
             </div>
-            
-            {/* RIGHT: Simple Level System */}
-            <div className="flex flex-col items-end gap-2 ml-6">
-              <div className="text-right">
-                <div className="text-3xl font-bold text-gray-900">Level {masteryInfo.level}</div>
-                <Badge className={`text-sm font-medium px-3 py-1 ${masteryInfo.color}`}>
-                  {masteryInfo.label}
-                </Badge>
+
+            {/* Core/Extended Performance Data */}
+            {progress && progress.questions_attempted > 0 && (
+              <div className="grid grid-cols-2 gap-6 py-3 border-t border-gray-100">
+                <PerformanceColumn 
+                  title="Core"
+                  data={performanceData.core}
+                  color="text-blue-700"
+                />
+                <PerformanceColumn 
+                  title="Extended" 
+                  data={performanceData.extended}
+                  color="text-purple-700"
+                />
               </div>
-            </div>
+            )}
+
+            {/* Analysis and Conclusion */}
+            {analysis && (
+              <div className="pt-3 border-t border-gray-100">
+                <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg">
+                  <Lightbulb className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="text-sm font-medium text-blue-900">Analysis:</div>
+                    <div className="text-sm text-blue-800">{analysis}</div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* MIDDLE SECTION: Clean Core/Extended Performance Data */}
-          {progress && progress.questions_attempted > 0 && (
-            <div className="grid grid-cols-2 gap-8 py-4 border-t border-gray-100">
-              <PerformanceColumn 
-                title="Core"
-                data={performanceData.core}
-                color="text-blue-700"
-              />
-              <PerformanceColumn 
-                title="Extended" 
-                data={performanceData.extended}
-                color="text-purple-700"
-              />
+          {/* RIGHT COLUMN (1/3): Level + Call to Action + Recommendations */}
+          <div className="col-span-1 space-y-4">
+            {/* Level Display */}
+            <div className="text-center">
+              <div className="text-3xl font-bold text-gray-900 mb-2">Level {masteryInfo.level}</div>
+              <Badge className={`text-sm font-medium px-3 py-1 mb-3 ${masteryInfo.color}`}>
+                {masteryInfo.label}
+              </Badge>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                {masteryInfo.description}
+              </p>
             </div>
-          )}
 
-          {/* BOTTOM SECTION: Action Button + Small Metadata */}
-          <div className="flex items-end justify-between pt-4 border-t border-gray-100">
-            {/* LEFT: Action Button */}
-            <div className="flex-1 pr-6">
+            {/* Call to Action */}
+            <div className="pt-2">
               {getActionButton()}
             </div>
-            
-            {/* RIGHT: Small Metadata in bottom corner */}
+
+            {/* Recommendations */}
+            {recommendations.length > 0 && (
+              <div className="pt-2">
+                <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
+                  Recommendations
+                </h4>
+                <div className="space-y-1">
+                  {recommendations.map((rec, index) => (
+                    <div key={index} className="text-xs text-gray-600 leading-relaxed">
+                      • {rec}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Small Metadata */}
             {progress?.last_practiced && (
-              <div className="flex items-center gap-1 text-xs text-gray-400">
-                <Clock className="h-3 w-3" />
-                <span>Last practiced: {new Date(progress.last_practiced).toLocaleDateString()}</span>
+              <div className="pt-2 border-t border-gray-100">
+                <div className="flex items-center gap-1 text-xs text-gray-400">
+                  <Clock className="h-3 w-3" />
+                  <span>Last: {new Date(progress.last_practiced).toLocaleDateString()}</span>
+                </div>
               </div>
             )}
           </div>
