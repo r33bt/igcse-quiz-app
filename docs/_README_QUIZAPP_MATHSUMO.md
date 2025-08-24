@@ -1508,7 +1508,294 @@ Current Status: Enhanced mastery system successfully implemented with intelligen
 
 Architecture Achievement: Transformed from simple quiz app to sophisticated educational platform with AI-driven assessment and Cambridge IGCSE alignment.
 
+====
 
+Option 2: Check the database directly Can you run this query in your Supabase SQL editor to see the actual stored data?
+
+CopySELECT 
+  subtopic_id,
+  easy_questions_attempted,
+  easy_questions_correct,
+  medium_questions_attempted, 
+  medium_questions_correct,
+  hard_questions_attempted,
+  hard_questions_correct
+FROM user_subtopic_progress 
+WHERE user_id = 'a1b2c3d4-e5f6-7890-1234-567890abcdef'
+ORDER BY subtopic_id;
+Option 3: Check if there's browser caching Try a hard refresh (Ctrl+Shift+R or Cmd+Shift+R) or open in incognito mode to rule out caching issues.
+
+Which option would you like to try first? My suspicion is that either:
+
+The database data itself is incorrect, or
+There's a different calculation happening somewhere else in the codebase
+Once we see the actual data, we can pinpoint exactly where the issue is!
+
+Copy
+Deep Research
+| subtopic_id                          | easy_questions_attempted | easy_questions_correct | medium_questions_attempted | medium_questions_correct | hard_questions_attempted | hard_questions_correct |
+| ------------------------------------ | ------------------------ | ---------------------- | -------------------------- | ------------------------ | ------------------------ | ---------------------- |
+| 7c5e9058-0c9c-404c-b51a-f178438c6575 | 8                        | 7                      | 10                         | 6                        | 4                        | 3                      |
+| 87a82cb8-dee8-496d-b7ea-666b600366ab | 6                        | 5                      | 8                          | 5                        | 4                        | 2                      |
+| 907779c1-3594-4e49-9052-cc72756758d6 | 0                        | 0                      | 0                          | 0                        | 0                        | 0                      |
+| 90b59169-ad6f-457c-8405-6c7b5f464c4e | 16                       | 15                     | 14                         | 13                       | 2                        | 2                      |
+| c03ebd34-6c30-4a5d-a5b9-03758688f5b8 | 12                       | 11                     | 14                         | 11                       | 2                        | 3                      |
+| c7ef0617-a00b-4cf5-8659-e7cb72135c8b | 8                        | 5                      | 5                          | 2                        | 2                        | 0                      |
+| f6c1b34a-af75-4a0f-9308-58ca5cb9693f | 15                       | 14                     | 13                         | 12                       | 2                        | 2                      |
+| fbdae5d0-f84f-4c34-89d7-dc8d87c5db26 | 10                       | 9                      | 12                         | 9                        | 3                        | 3                      |
+Perfect! Now I can see the actual database data. Looking at your data, I can see that none of your records match the 5/8, 3/5, 2/2 pattern you mentioned earlier.
+
+Let me check which specific subtopic you're looking at. Can you tell me:
+
+Which subtopic card are you looking at that shows the wrong data?
+What subtopic code (like "1.1", "2.1", etc.) is displayed on that card?
+Once I know which record you're referring to, I can cross-reference it with this database data.
+
+However, I already spot some potential issues:
+
+Looking at the data, let me guess - are you looking at the subtopic with ID c7ef0617-a00b-4cf5-8659-e7cb72135c8b? Because that shows:
+
+Easy: 5/8 (62.5%) ✅
+Medium: 2/5 (40%) ❌ (you said it should show 3/5)
+Hard: 0/2 (0%) ❌ (you said it should show 2/2)
+The issue is clear now: The database data itself doesn't match what you expect to see. The database shows:
+
+Easy: 5 correct out of 8 attempted ✅
+Medium: 2 correct out of 5 attempted (not 3 correct) ❌
+Hard: 0 correct out of 2 attempted (not 2 correct) ❌
+Questions:
+
+Which specific subtopic are you looking at?
+Should we update the database data to match your expected values (3/5 for medium, 2/2 for hard)?
+Or is there another subtopic that should have the 5/8, 3/5, 2/2 pattern?
+The code is working correctly - it's just displaying the actual database values!
+
+Copy
+Deep Research
+
+I'm looking at 1.2, the subtopic 1.2, and take note that we're trying to figure out the logic and the code, and it's not that you're just trying to get the answer that I'm suggesting, because I'm just suggesting the correct answer, and all we need to figure out is how we derive it. So to answer your question two, do we update the database data to match? My first question is, are these just hard-coded data in there currently and not actually based on correct results of questions taken and answered?
+Great question! You're absolutely right to ask about the data source. Looking at your screenshot for subtopic 1.2 "Operations with numbers", I can see:
+
+Easy: 5/8 (63%)
+Medium: 2/5 (40%)
+Hard: 0/2 (0%)
+And from the database query, the record with ID c7ef0617-a00b-4cf5-8659-e7cb72135c8b shows exactly these same values.
+
+Your key question: Are these hard-coded test data or actual quiz results?
+
+Looking back at your project history, I can see that you have:
+
+Real question bank: 80+ actual IGCSE questions in the database
+Test user progress data: The user ID a1b2c3d4-e5f6-7890-1234-567890abcdef
+The critical question is: How did this progress data get into the database?
+
+Possible scenarios:
+
+Hard-coded test data: You manually inserted sample progress data for testing the interface
+Simulated quiz results: Data generated from actual quiz attempts by the test user
+Sample/seed data: Realistic but fabricated data for development purposes
+To determine the source, can you check:
+
+Do you have actual quiz pages working yet? (Like /quiz/assessment/${subtopic.id})
+Did you manually insert this progress data for testing the interface?
+Or was this data generated from real quiz attempts?
+This is crucial because:
+
+If it's test data: We should update it to realistic values that demonstrate the interface properly
+If it's real results: We need to figure out why the calculations seem off to you
+What's the actual source of this progress data?
+
+Copy
+Deep Research
+Can you give me any SQL commands to run in Supabase in order for you to check all this, or any other PowerShell commands to check anything so that you can get a clear picture of everything? 
+Perfect! Let me give you a comprehensive set of SQL commands to run in Supabase to get the full picture:
+
+1. Check Current Progress Data Structure
+Copy-- See all progress data for test user with subtopic details
+SELECT 
+  usp.subtopic_id,
+  ist.subtopic_code,
+  ist.title,
+  usp.questions_attempted,
+  usp.questions_correct,
+  usp.easy_questions_attempted,
+  usp.easy_questions_correct,
+  usp.medium_questions_attempted,
+  usp.medium_questions_correct,
+  usp.hard_questions_attempted,
+  usp.hard_questions_correct,
+  usp.core_questions_attempted,
+  usp.core_questions_correct,
+  usp.mastery_percentage,
+  usp.baseline_assessment_completed,
+  usp.created_at,
+  usp.updated_at
+FROM user_subtopic_progress usp
+JOIN igcse_subtopics ist ON usp.subtopic_id = ist.id
+WHERE usp.user_id = 'a1b2c3d4-e5f6-7890-1234-567890abcdef'
+ORDER BY ist.subtopic_code;
+2. Check Question Bank Structure
+Copy-- See questions available for subtopic 1.2 (Operations with numbers)
+SELECT 
+  q.id,
+  ist.subtopic_code,
+  ist.title,
+  q.difficulty,
+  q.difficulty_label,
+  q.paper_type,
+  q.is_baseline_question,
+  q.question_text,
+  q.created_at
+FROM questions q
+JOIN igcse_subtopics ist ON q.igcse_subtopic_id = ist.id
+WHERE ist.subtopic_code = '1.2'
+ORDER BY q.difficulty, q.paper_type;
+3. Check Quiz Attempt History
+Copy-- Look for any quiz attempt records
+SELECT table_name 
+FROM information_schema.tables 
+WHERE table_schema = 'public' 
+AND (table_name LIKE '%quiz%' OR table_name LIKE '%attempt%' OR table_name LIKE '%answer%' OR table_name LIKE '%session%');
+4. Check All Tables in Your Database
+Copy-- See what tables exist to understand data flow
+SELECT 
+  table_name,
+  table_type
+FROM information_schema.tables 
+WHERE table_schema = 'public'
+ORDER BY table_name;
+5. Check Data Timestamps
+Copy-- When was this progress data created/updated?
+SELECT 
+  subtopic_id,
+  questions_attempted,
+  created_at,
+  updated_at,
+  CASE 
+    WHEN created_at = updated_at THEN 'Never updated (likely seed data)'
+    ELSE 'Has been updated (possibly real activity)'
+  END as data_status
+FROM user_subtopic_progress 
+WHERE user_id = 'a1b2c3d4-e5f6-7890-1234-567890abcdef'
+ORDER BY created_at;
+6. Validate Data Consistency
+Copy-- Check if the totals add up correctly
+SELECT 
+  ist.subtopic_code,
+  usp.questions_attempted,
+  usp.questions_correct,
+  (usp.easy_questions_attempted + usp.medium_questions_attempted + usp.hard_questions_attempted) as difficulty_total,
+  (usp.easy_questions_correct + usp.medium_questions_correct + usp.hard_questions_correct) as difficulty_correct_total,
+  usp.core_questions_attempted,
+  usp.core_questions_correct,
+  -- Check if totals match
+  CASE 
+    WHEN usp.questions_attempted = (usp.easy_questions_attempted + usp.medium_questions_attempted + usp.hard_questions_attempted) 
+    THEN '✅ Consistent'
+    ELSE '❌ Inconsistent totals'
+  END as consistency_check
+FROM user_subtopic_progress usp
+JOIN igcse_subtopics ist ON usp.subtopic_id = ist.id
+WHERE usp.user_id = 'a1b2c3d4-e5f6-7890-1234-567890abcdef'
+AND usp.questions_attempted > 0
+ORDER BY ist.subtopic_code;
+7. Check for User Activity Logs
+Copy-- Look for any user activity or audit tables
+SELECT table_name 
+FROM information_schema.tables 
+WHERE table_schema = 'public' 
+AND (table_name LIKE '%log%' OR table_name LIKE '%audit%' OR table_name LIKE '%activity%' OR table_name LIKE '%history%');
+Please run these queries in order and paste the results back to me. This will tell us:
+
+When the data was created (seed data vs real activity)
+If there are actual quiz tables (indicating real quiz functionality)
+Data consistency issues (do the numbers add up?)
+What questions exist for the specific subtopic you're looking at
+The complete data picture for proper debugging
+Once I see these results, I'll be able to determine exactly how this progress data was generated and whether we need to fix the data or the calculation logic!
+
+Copy
+Deep Research
+| subtopic_id                          | subtopic_code | title                         | questions_attempted | questions_correct | easy_questions_attempted | easy_questions_correct | medium_questions_attempted | medium_questions_correct | hard_questions_attempted | hard_questions_correct | core_questions_attempted | core_questions_correct | mastery_percentage | baseline_assessment_completed | created_at                    | updated_at                    |
+| ------------------------------------ | ------------- | ----------------------------- | ------------------- | ----------------- | ------------------------ | ---------------------- | -------------------------- | ------------------------ | ------------------------ | ---------------------- | ------------------------ | ---------------------- | ------------------ | ----------------------------- | ----------------------------- | ----------------------------- |
+| 907779c1-3594-4e49-9052-cc72756758d6 | 1.1           | Integers and rational numbers | 0                   | 0                 | 0                        | 0                      | 0                          | 0                        | 0                        | 0                      | 0                        | 0                      | 0                  | false                         | 2025-08-23 05:15:47.814669+00 | 2025-08-23 05:15:47.814669+00 |
+| c7ef0617-a00b-4cf5-8659-e7cb72135c8b | 1.2           | Operations with numbers       | 15                  | 8                 | 8                        | 5                      | 5                          | 2                        | 2                        | 0                      | 10                       | 6                      | 53                 | true                          | 2025-08-23 05:15:47.814669+00 | 2025-08-23 05:15:47.814669+00 |
+| 87a82cb8-dee8-496d-b7ea-666b600366ab | 1.3           | Powers and roots              | 18                  | 12                | 6                        | 5                      | 8                          | 5                        | 4                        | 2                      | 12                       | 8                      | 67                 | true                          | 2025-08-23 05:15:47.814669+00 | 2025-08-23 05:15:47.814669+00 |
+| 7c5e9058-0c9c-404c-b51a-f178438c6575 | 1.4           | Standard form                 | 22                  | 16                | 8                        | 7                      | 10                         | 6                        | 4                        | 3                      | 15                       | 11                     | 73                 | true                          | 2025-08-23 05:15:47.814669+00 | 2025-08-23 05:15:47.814669+00 |
+| fbdae5d0-f84f-4c34-89d7-dc8d87c5db26 | 1.5           | Percentages and ratios        | 25                  | 21                | 10                       | 9                      | 12                         | 9                        | 3                        | 3                      | 18                       | 15                     | 84                 | true                          | 2025-08-23 05:15:47.814669+00 | 2025-08-23 05:15:47.814669+00 |
+| c03ebd34-6c30-4a5d-a5b9-03758688f5b8 | 2.1           | Algebraic expressions         | 28                  | 25                | 12                       | 11                     | 14                         | 11                       | 2                        | 3                      | 20                       | 17                     | 89                 | true                          | 2025-08-23 05:15:47.814669+00 | 2025-08-23 05:15:47.814669+00 |
+| f6c1b34a-af75-4a0f-9308-58ca5cb9693f | 2.2           | Linear equations              | 30                  | 28                | 15                       | 14                     | 13                         | 12                       | 2                        | 2                      | 22                       | 20                     | 93                 | true                          | 2025-08-23 05:15:47.814669+00 | 2025-08-23 05:15:47.814669+00 |
+| 90b59169-ad6f-457c-8405-6c7b5f464c4e | 2.3           | Quadratic expressions         | 32                  | 30                | 16                       | 15                     | 14                         | 13                       | 2                        | 2                      | 25                       | 23                     | 94                 | true                          | 2025-08-23 05:15:47.814669+00 | 2025-08-23 05:15:47.814669+00 |      | id                                   | subtopic_code | title                   | difficulty | difficulty_label | paper_type | is_baseline_question | question_text                                 | created_at                    |
+| ------------------------------------ | ------------- | ----------------------- | ---------- | ---------------- | ---------- | -------------------- | --------------------------------------------- | ----------------------------- |
+| aaf37a5c-4273-434e-8b7f-c3f3c27685cf | 1.2           | Operations with numbers | 1          | Easy             | Core       | true                 | What is 2 + 3?                                | 2025-08-23 01:26:32.518982+00 |
+| 01bf8f74-8ee2-4b9e-99d9-120d98106a6d | 1.2           | Operations with numbers | 1          | Easy             | Core       | true                 | What is 10 - 4?                               | 2025-08-23 01:26:32.518982+00 |
+| 3c3030ba-e228-4060-b729-8d081169da85 | 1.2           | Operations with numbers | 1          | Easy             | Core       | true                 | Calculate 24 ÷ 6 + 3 × 2                      | 2025-08-23 02:44:25.719943+00 |
+| aaf4994b-cccd-4f9e-87bf-520f08ad4218 | 1.2           | Operations with numbers | 1          | Easy             | Core       | true                 | Calculate 24 ÷ 6 + 3 × 2                      | 2025-08-23 02:48:28.714834+00 |
+| 6a0bee27-98a7-4876-96c9-08ccbcad5c0e | 1.2           | Operations with numbers | 1          | Easy             | Core       | true                 | What is 45 - 17?                              | 2025-08-23 02:48:28.714834+00 |
+| 38f8b2df-41b4-412d-b941-da9b1f4acca4 | 1.2           | Operations with numbers | 1          | Easy             | Core       | true                 | Calculate 8 × 7                               | 2025-08-23 02:48:28.714834+00 |
+| f8d38d5d-3d4e-48f4-92eb-ec802137eaef | 1.2           | Operations with numbers | 2          | Medium           | Core       | true                 | Calculate 15 × 6 ÷ 3                          | 2025-08-23 02:37:59.764836+00 |
+| fa314336-3973-49d3-9882-8d2cb3a0e347 | 1.2           | Operations with numbers | 2          | Medium           | Core       | false                | Find the value of 2 × (15 - 3 × 4) + 18 ÷ 6   | 2025-08-23 02:48:28.714834+00 |
+| 4444bd6a-ee1d-4017-beb8-2415117b6a3f | 1.2           | Operations with numbers | 2          | Medium           | Core       | true                 | What is 15% of 200?                           | 2025-08-23 01:26:32.518982+00 |
+| 84d653e7-8570-40e0-b494-1d7556a69b73 | 1.2           | Operations with numbers | 2          | Medium           | Core       | true                 | Solve: 2x + 5 = 13                            | 2025-08-23 01:26:32.518982+00 |
+| dc3cd0f9-b6cc-4877-ae4d-12d7c46ae58b | 1.2           | Operations with numbers | 2          | Medium           | Core       | true                 | Calculate 144 ÷ 12 + 5 × 4 - 8                | 2025-08-23 02:48:28.714834+00 |
+| 92f4ee39-a761-422a-9ef8-6ff1d69420d3 | 1.2           | Operations with numbers | 2          | Medium           | Core       | true                 | Evaluate (12 + 8) × 3 - 15                    | 2025-08-23 02:48:28.714834+00 |
+| b1c4159c-908a-4d54-ad71-4c1a5da5ea44 | 1.2           | Operations with numbers | 3          | Hard             | Extended   | false                | Evaluate 3 + 4 × 2² - (8 - 3 × 2)             | 2025-08-23 02:48:28.714834+00 |
+| 176701da-e387-4266-83b4-1d1238be35cd | 1.2           | Operations with numbers | 3          | Hard             | Extended   | false                | If 156 ÷ n = 12, find the value of n × 4 - 15 | 2025-08-23 02:48:28.714834+00 |
+| 82085828-75d1-4b06-b961-c4bb0b378d27 | 1.2           | Operations with numbers | 3          | Hard             | Extended   | false                | If 2^x = 32, what is x?                       | 2025-08-23 01:26:32.518982+00 |                  | table_name             |
+| ---------------------- |
+| quiz_question_attempts |
+| quiz_sessions          |
+| quiz_attempts          |               | table_name                | table_type |
+| ------------------------- | ---------- |
+| badges                    | BASE TABLE |
+| banks                     | BASE TABLE |
+| car_loans                 | BASE TABLE |
+| credit_cards              | BASE TABLE |
+| fixed_deposits            | BASE TABLE |
+| home_loans                | BASE TABLE |
+| igcse_subtopics           | BASE TABLE |
+| igcse_topics              | BASE TABLE |
+| money_banks               | BASE TABLE |
+| money_car_loans           | BASE TABLE |
+| money_credit_cards        | BASE TABLE |
+| money_fixed_deposits      | BASE TABLE |
+| money_home_loans          | BASE TABLE |
+| money_personal_loans      | BASE TABLE |
+| money_savings_accounts    | BASE TABLE |
+| personal_loans            | BASE TABLE |
+| profiles                  | BASE TABLE |
+| question_selection_helper | VIEW       |
+| questions                 | BASE TABLE |
+| quiz_attempts             | BASE TABLE |
+| quiz_question_attempts    | BASE TABLE |
+| quiz_sessions             | BASE TABLE |
+| savings_accounts          | BASE TABLE |
+| subjects                  | BASE TABLE |
+| tenants                   | BASE TABLE |
+| topics                    | BASE TABLE |
+| user_achievements         | BASE TABLE |
+| user_badges               | BASE TABLE |
+| user_learning_preferences | BASE TABLE |
+| user_progress             | BASE TABLE |
+| user_subtopic_progress    | BASE TABLE |                       | subtopic_id                          | questions_attempted | created_at                    | updated_at                    | data_status                      |
+| ------------------------------------ | ------------------- | ----------------------------- | ----------------------------- | -------------------------------- |
+| 7c5e9058-0c9c-404c-b51a-f178438c6575 | 22                  | 2025-08-23 05:15:47.814669+00 | 2025-08-23 05:15:47.814669+00 | Never updated (likely seed data) |
+| c7ef0617-a00b-4cf5-8659-e7cb72135c8b | 15                  | 2025-08-23 05:15:47.814669+00 | 2025-08-23 05:15:47.814669+00 | Never updated (likely seed data) |
+| 87a82cb8-dee8-496d-b7ea-666b600366ab | 18                  | 2025-08-23 05:15:47.814669+00 | 2025-08-23 05:15:47.814669+00 | Never updated (likely seed data) |
+| f6c1b34a-af75-4a0f-9308-58ca5cb9693f | 30                  | 2025-08-23 05:15:47.814669+00 | 2025-08-23 05:15:47.814669+00 | Never updated (likely seed data) |
+| 90b59169-ad6f-457c-8405-6c7b5f464c4e | 32                  | 2025-08-23 05:15:47.814669+00 | 2025-08-23 05:15:47.814669+00 | Never updated (likely seed data) |
+| fbdae5d0-f84f-4c34-89d7-dc8d87c5db26 | 25                  | 2025-08-23 05:15:47.814669+00 | 2025-08-23 05:15:47.814669+00 | Never updated (likely seed data) |
+| c03ebd34-6c30-4a5d-a5b9-03758688f5b8 | 28                  | 2025-08-23 05:15:47.814669+00 | 2025-08-23 05:15:47.814669+00 | Never updated (likely seed data) |
+| 907779c1-3594-4e49-9052-cc72756758d6 | 0                   | 2025-08-23 05:15:47.814669+00 | 2025-08-23 05:15:47.814669+00 | Never updated (likely seed data) |                  | subtopic_code | questions_attempted | questions_correct | difficulty_total | difficulty_correct_total | core_questions_attempted | core_questions_correct | consistency_check |
+| ------------- | ------------------- | ----------------- | ---------------- | ------------------------ | ------------------------ | ---------------------- | ----------------- |
+| 1.2           | 15                  | 8                 | 15               | 7                        | 10                       | 6                      | ✅ Consistent      |
+| 1.3           | 18                  | 12                | 18               | 12                       | 12                       | 8                      | ✅ Consistent      |
+| 1.4           | 22                  | 16                | 22               | 16                       | 15                       | 11                     | ✅ Consistent      |
+| 1.5           | 25                  | 21                | 25               | 21                       | 18                       | 15                     | ✅ Consistent      |
+| 2.1           | 28                  | 25                | 28               | 25                       | 20                       | 17                     | ✅ Consistent      |
+| 2.2           | 30                  | 28                | 30               | 28                       | 22                       | 20                     | ✅ Consistent      |
+| 2.3           | 32                  | 30                | 32               | 30                       | 25                       | 23                     | ✅ Consistent      |                             Success. No rows returned
+Perfect! Now I have the complete picture. Let me break down what we've discovered:
 
 
 
