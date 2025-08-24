@@ -14,7 +14,9 @@ import {
   TrendingUp,
   Lightbulb,
   AlertCircle,
-  Star
+  Star,
+  BarChart3,
+  ArrowRight
 } from 'lucide-react'
 import Link from 'next/link'
 import { 
@@ -112,7 +114,7 @@ export default function SubtopicProgressCard({
   availability 
 }: SubtopicProgressCardProps) {
   
-  // Phase 1: Use enhanced mastery calculation system
+  // Enhanced mastery calculation system
   const masteryData = progress 
     ? calculateComprehensiveMastery(progress)
     : null
@@ -124,7 +126,7 @@ export default function SubtopicProgressCard({
     description: 'No baseline established yet. Take an assessment to see your current level.'
   }
 
-  // Calculate Core/Extended breakdown using actual database values
+  // Calculate Core/Extended breakdown
   const getPerformanceData = () => {
     if (!progress || progress.questions_attempted === 0) {
       return {
@@ -133,11 +135,9 @@ export default function SubtopicProgressCard({
       }
     }
 
-    // Use actual core data from database when available
     const coreTotal = progress.core_questions_attempted || 0
     const coreCorrect = progress.core_questions_correct || 0
     
-    // If we have actual core data, use it; otherwise estimate
     let coreRatio = 0.6 // Default 60% core
     if (progress.questions_attempted > 0 && coreTotal > 0) {
       coreRatio = coreTotal / progress.questions_attempted
@@ -151,7 +151,6 @@ export default function SubtopicProgressCard({
     const extendedMedium = progress.medium_questions_attempted - coreMedium
     const extendedHard = progress.hard_questions_attempted - coreHard
 
-    // Distribute correct answers proportionally
     const coreAccuracy = coreTotal > 0 ? coreCorrect / coreTotal : progress.questions_correct / progress.questions_attempted
     const extendedAccuracy = progress.questions_correct / progress.questions_attempted
 
@@ -179,27 +178,30 @@ export default function SubtopicProgressCard({
 
   const performanceData = getPerformanceData()
 
-  // Phase 1: Enhanced analysis using foundation data and smart weighting
+  // Enhanced analysis with data volume emphasis
   const getEnhancedAnalysis = () => {
     if (!masteryData || !progress || progress.questions_attempted === 0) {
       return ""
     }
 
     const { foundation, current, examReadiness } = masteryData
-    
     let analysis = ""
     
+    // Data volume context (your key point about accuracy)
+    const dataReliability = progress.questions_attempted >= 24 ? 'highly reliable' : 
+                           progress.questions_attempted >= 12 ? 'moderately reliable' : 'limited data'
+    
     if (foundation.readyForAdvanced) {
-      analysis = `Strong foundations established (Easy: ${foundation.easyMastery}%, Medium: ${foundation.mediumMastery}%). Hard questions now contribute significantly to A* potential (${examReadiness.aStarPotential}%).`
+      analysis = `Strong foundations established (${dataReliability} with ${progress.questions_attempted} questions). Easy: ${foundation.easyMastery}%, Medium: ${foundation.mediumMastery}%. Hard questions now contribute significantly to A* potential (${examReadiness.aStarPotential}%).`
     } else if (foundation.easyMastered) {
-      analysis = `Good easy question mastery (${foundation.easyMastery}%). Focus on medium questions (${foundation.mediumMastery}%) to unlock advanced weighting system.`
+      analysis = `Good easy question mastery (${foundation.easyMastery}% from ${progress.easy_questions_attempted} questions). Focus on medium questions (${foundation.mediumMastery}% from ${progress.medium_questions_attempted} questions) to unlock advanced weighting system.`
     } else {
-      analysis = `Building foundations. Easy question mastery (${foundation.easyMastery}%) is key to reliable assessment. Hard performance may not reflect true ability yet.`
+      analysis = `Building foundations (${dataReliability}). Easy question mastery (${foundation.easyMastery}% from ${progress.easy_questions_attempted} questions) is key to reliable assessment. Hard performance may not reflect true ability yet.`
     }
 
-    // Add confidence context for Phase 1
-    if (current.confidence.level === 'insufficient' || current.confidence.level === 'low') {
-      analysis += ` Assessment confidence: ${current.confidence.description}`
+    // Emphasize need for more data when insufficient
+    if (progress.questions_attempted < 12) {
+      analysis += ` Take ${12 - progress.questions_attempted} more questions for more accurate analysis.`
     }
 
     return analysis
@@ -207,11 +209,61 @@ export default function SubtopicProgressCard({
 
   const analysis = getEnhancedAnalysis()
 
-  // Phase 1: Use enhanced recommendations from the new system
+  // Enhanced recommendations with data volume emphasis
   const recommendations = masteryData?.recommendations || ["Start with the assessment to establish your baseline performance."]
 
-  // Smart action buttons with enhanced logic
-  const getActionButton = () => {
+  // Secondary actions for multiple options on right side
+  const getSecondaryActions = () => {
+    const actions = []
+    
+    // Always offer assessment if not recently taken or insufficient data
+    if (!progress?.baseline_assessment_completed || (progress?.questions_attempted || 0) < 12) {
+      actions.push({ 
+        label: "Take Assessment", 
+        url: `/quiz/assessment/${subtopic.id}`, 
+        icon: Target,
+        description: "Establish reliable baseline"
+      })
+    }
+    
+    // Offer targeted practice based on weakness
+    if (masteryData?.examReadiness.weakestArea && masteryData.examReadiness.weakestArea !== 'balanced') {
+      const weakest = masteryData.examReadiness.weakestArea
+      actions.push({ 
+        label: `Practice ${weakest.charAt(0).toUpperCase() + weakest.slice(1)}`, 
+        url: `/quiz/practice/${subtopic.id}?focus=${weakest}`,
+        icon: BookOpen,
+        description: `Target weakness area`
+      })
+    }
+    
+    // Offer mixed practice for data collection
+    if ((progress?.questions_attempted || 0) < 24) {
+      actions.push({ 
+        label: "Mixed Practice", 
+        url: `/quiz/practice/${subtopic.id}`, 
+        icon: BarChart3,
+        description: "Build data for better analysis"
+      })
+    }
+    
+    // Offer review for high performers
+    if (masteryInfo.level >= 4) {
+      actions.push({ 
+        label: "Quick Review", 
+        url: `/quiz/review/${subtopic.id}`, 
+        icon: RefreshCw,
+        description: "Maintain mastery level"
+      })
+    }
+    
+    return actions.slice(0, 3) // Limit to 3 secondary actions
+  }
+
+  const secondaryActions = getSecondaryActions()
+
+  // Primary action button (existing logic)
+  const getPrimaryActionButton = () => {
     if (!availability || availability.total === 0) {
       return (
         <Badge variant="secondary" className="text-gray-500 w-full justify-center py-2">
@@ -220,13 +272,13 @@ export default function SubtopicProgressCard({
       )
     }
 
-    // Handle insufficient data case
+    // Emphasize data collection when insufficient
     if (masteryData && masteryData.current.confidence.needMoreQuestions) {
       return (
         <Link href={`/quiz/practice/${subtopic.id}`}>
           <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg">
             <Target className="h-4 w-4 mr-2" />
-            Practice More Questions
+            Build Data ({masteryData.current.confidence.questionsUsed}/12)
           </Button>
         </Link>
       )
@@ -311,7 +363,7 @@ export default function SubtopicProgressCard({
         {/* TWO-COLUMN LAYOUT: 2/3 + 1/3 */}
         <div className="grid grid-cols-3 gap-6">
           
-          {/* LEFT COLUMN (2/3): Title + Content + Analysis */}
+          {/* LEFT COLUMN (2/3): Title + Performance + Foundation + Analysis */}
           <div className="col-span-2 space-y-4">
             {/* Title and Subtitle with Icon */}
             <div className="flex items-start gap-3">
@@ -328,7 +380,7 @@ export default function SubtopicProgressCard({
               </div>
             </div>
 
-            {/* Core/Extended Performance Data with Foundation Indicators */}
+            {/* Core/Extended Performance Data */}
             {progress && progress.questions_attempted > 0 && (
               <div className="grid grid-cols-2 gap-6 py-3 border-t border-gray-100">
                 <PerformanceColumn 
@@ -354,20 +406,69 @@ export default function SubtopicProgressCard({
               </div>
             )}
 
-            {/* Enhanced Analysis with Foundation Status */}
+            {/* MOVED: Foundation Status with Question Counts */}
+            {masteryData && progress && progress.questions_attempted > 0 && (
+              <div className="py-3 border-t border-gray-100">
+                <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Foundation Analysis (All Questions)
+                </h4>
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span>Easy:</span>
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">{masteryData.foundation.easyMastery}%</span>
+                      <span className="text-xs text-gray-500">({progress.easy_questions_attempted}Q)</span>
+                      {masteryData.foundation.easyMastered && <CheckCircle2 className="h-3 w-3 text-green-600" />}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Medium:</span>
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">{masteryData.foundation.mediumMastery}%</span>
+                      <span className="text-xs text-gray-500">({progress.medium_questions_attempted}Q)</span>
+                      {masteryData.foundation.mediumMastered && <CheckCircle2 className="h-3 w-3 text-green-600" />}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Hard:</span>
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">{masteryData.foundation.hardMastery}%</span>
+                      <span className="text-xs text-gray-500">({progress.hard_questions_attempted}Q)</span>
+                      {masteryData.foundation.readyForAdvanced && masteryData.foundation.hardMastery >= 70 && <Star className="h-3 w-3 text-yellow-600" />}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Advanced Ready Status */}
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-xs font-medium text-gray-700">Advanced Weighting:</span>
+                  <Badge variant={masteryData.foundation.readyForAdvanced ? "default" : "secondary"} className="text-xs">
+                    {masteryData.foundation.readyForAdvanced ? "Unlocked" : "Locked"}
+                  </Badge>
+                  {!masteryData.foundation.readyForAdvanced && (
+                    <span className="text-xs text-gray-500">
+                      (Need 80% Easy + 70% Medium)
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Enhanced Analysis */}
             {analysis && (
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg">
                   <Lightbulb className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <div className="text-sm font-medium text-blue-900">Enhanced Analysis:</div>
+                    <div className="text-sm font-medium text-blue-900">Smart Analysis:</div>
                     <div className="text-sm text-blue-800">{analysis}</div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* A* Potential Indicator (Phase 1) */}
+            {/* A* Potential Indicator */}
             {masteryData && masteryData.examReadiness.aStarPotential > 0 && (
               <div className="pt-2">
                 <div className="flex items-center gap-2 p-2 bg-yellow-50 rounded-lg border border-yellow-200">
@@ -375,27 +476,30 @@ export default function SubtopicProgressCard({
                   <div className="text-sm">
                     <span className="font-medium text-yellow-900">A* Potential: </span>
                     <span className="text-yellow-800">{masteryData.examReadiness.aStarPotential}%</span>
+                    <span className="text-xs text-yellow-700 ml-2">
+                      (Based on {progress?.questions_attempted || 0} questions)
+                    </span>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* RIGHT COLUMN (1/3): Level + Call to Action + Recommendations */}
+          {/* RIGHT COLUMN (1/3): Level + Primary Action + Secondary Actions */}
           <div className="col-span-1 space-y-4">
-            {/* Enhanced Level Display with Confidence */}
+            {/* Enhanced Level Display */}
             <div className="text-center">
               <div className="text-3xl font-bold text-gray-900 mb-2">Level {masteryInfo.level}</div>
               <Badge className={`text-sm font-medium px-3 py-1 mb-3 ${masteryInfo.color}`}>
                 {masteryInfo.label}
               </Badge>
               
-              {/* Phase 1: Show confidence level */}
+              {/* Confidence and data context */}
               {masteryData && masteryData.current.confidence.level !== 'high' && (
                 <div className="flex items-center justify-center gap-1 mb-2">
                   <AlertCircle className="h-3 w-3 text-gray-500" />
-                  <span className="text-xs text-gray-500 capitalize">
-                    {masteryData.current.confidence.level} confidence
+                  <span className="text-xs text-gray-500">
+                    {masteryData.current.confidence.questionsUsed}/12+ questions
                   </span>
                 </div>
               )}
@@ -404,7 +508,7 @@ export default function SubtopicProgressCard({
                 {masteryInfo.description}
               </p>
 
-              {/* Phase 1: Overall Level Context */}
+              {/* Overall Level Context */}
               {masteryData && masteryData.overall.level.level !== masteryData.current.level.level && (
                 <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
                   Overall: Level {masteryData.overall.level.level} ({masteryData.overall.accuracy}%)
@@ -412,19 +516,44 @@ export default function SubtopicProgressCard({
               )}
             </div>
 
-            {/* Call to Action */}
+            {/* Primary Call to Action */}
             <div className="pt-2">
-              {getActionButton()}
+              {getPrimaryActionButton()}
             </div>
 
-            {/* Enhanced Recommendations */}
-            {recommendations.length > 0 && (
+            {/* Secondary Actions */}
+            {secondaryActions.length > 0 && (
               <div className="pt-2">
+                <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
+                  More Options
+                </h4>
+                <div className="space-y-2">
+                  {secondaryActions.map((action, index) => (
+                    <Link key={index} href={action.url}>
+                      <div className="flex items-center justify-between p-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <action.icon className="h-4 w-4 text-gray-500" />
+                          <span className="font-medium">{action.label}</span>
+                        </div>
+                        <ArrowRight className="h-3 w-3 text-gray-400" />
+                      </div>
+                      <div className="text-xs text-gray-500 ml-6 -mt-1">
+                        {action.description}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Smart Recommendations */}
+            {recommendations.length > 0 && (
+              <div className="pt-2 border-t border-gray-100">
                 <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
                   Smart Recommendations
                 </h4>
                 <div className="space-y-1">
-                  {recommendations.map((rec, index) => (
+                  {recommendations.slice(0, 2).map((rec, index) => (
                     <div key={index} className="text-xs text-gray-600 leading-relaxed">
                       • {rec}
                     </div>
@@ -433,39 +562,7 @@ export default function SubtopicProgressCard({
               </div>
             )}
 
-            {/* Phase 1: Foundation Status Indicators */}
-            {masteryData && progress && progress.questions_attempted > 0 && (
-              <div className="pt-2 border-t border-gray-100">
-                <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
-                  Foundation Status
-                </h4>
-                <div className="space-y-1 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span>Easy Questions:</span>
-                    <div className="flex items-center gap-1">
-                      <span>{masteryData.foundation.easyMastery}%</span>
-                      {masteryData.foundation.easyMastered && <CheckCircle2 className="h-3 w-3 text-green-600" />}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Medium Questions:</span>
-                    <div className="flex items-center gap-1">
-                      <span>{masteryData.foundation.mediumMastery}%</span>
-                      {masteryData.foundation.mediumMastered && <CheckCircle2 className="h-3 w-3 text-green-600" />}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Advanced Ready:</span>
-                    <div className="flex items-center gap-1">
-                      <span>{masteryData.foundation.readyForAdvanced ? 'Yes' : 'No'}</span>
-                      {masteryData.foundation.readyForAdvanced && <Star className="h-3 w-3 text-yellow-600" />}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Small Metadata */}
+            {/* Metadata */}
             {progress?.last_practiced && (
               <div className="pt-2 border-t border-gray-100">
                 <div className="flex items-center gap-1 text-xs text-gray-400">
