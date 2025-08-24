@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ChevronDown, ChevronRight, BookOpen } from 'lucide-react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
 import SubtopicProgressCard from './SubtopicProgressCard'
 
@@ -20,8 +20,8 @@ interface SubtopicProgress {
   mastery_percentage: number
   core_questions_attempted: number
   core_questions_correct: number
-  extended_questions_attempted: number  // ADDED
-  extended_questions_correct: number    // ADDED
+  extended_questions_attempted: number
+  extended_questions_correct: number
   easy_questions_attempted: number
   easy_questions_correct: number
   medium_questions_attempted: number
@@ -147,9 +147,9 @@ export default function QuizTopicSelector() {
       setProgressData(progressData || [])
       setQuestionAvailability(availabilityMap)
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error loading data:', error)
-      setError(error.message || 'Failed to load data')
+      setError(error instanceof Error ? error.message : 'Failed to load data')
     } finally {
       setLoading(false)
     }
