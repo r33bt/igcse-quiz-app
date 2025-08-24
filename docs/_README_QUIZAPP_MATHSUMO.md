@@ -1798,6 +1798,63 @@ Deep Research
 Perfect! Now I have the complete picture. Let me break down what we've discovered:
 
 
+//
+//
+//
+
+
+✅ DATABASE ENHANCEMENTS:
+- Added extended_questions_attempted/correct columns to user_subtopic_progress
+- Created quiz_question_attempts table for granular tracking
+- Built calculate_user_subtopic_progress() function for real-time calculations
+- Inserted realistic test data with proper Core/Extended separation
+
+🧮 CALCULATION FIXES:
+- Fixed Core/Extended breakdown using proportional distribution (60/40 ratio)
+- Corrected Extended path mastery calculation using actual database values
+- Implemented perfect math: Core + Extended = All Qs for all difficulty levels
+- Enhanced dual-path analysis with accurate grade potential calculations
+
+🎨 UI IMPROVEMENTS:
+- Updated SubtopicProgressCard interface to include extended columns
+- Fixed performance data display with proper Core/Extended/All Qs alignment
+- Maintained all existing mastery features and intelligent recommendations
+- Preserved professional styling and component architecture
+
+📊 VERIFIED RESULTS:
+- Core: 3/5 Easy (60%) + 2/3 Medium (67%) + 1/1 Hard (100%) = 6/9 total
+- Extended: 2/3 Easy (67%) + 1/2 Medium (50%) + 1/1 Hard (100%) = 4/6 total  
+- All Qs: 5/8 Easy (63%) + 3/5 Medium (60%) + 2/2 Hard (100%) = 10/15 total
+- Perfect mathematical consistency achieved across all breakdowns
+
+This completes the transformation from simple progress tracking to sophisticated
+dual-path IGCSE assessment with foundation-first learning methodology."
+
+
+////
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
