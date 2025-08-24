@@ -20,6 +20,8 @@ interface SubtopicProgress {
   mastery_percentage: number
   core_questions_attempted: number
   core_questions_correct: number
+  extended_questions_attempted: number  // ADDED
+  extended_questions_correct: number    // ADDED
   easy_questions_attempted: number
   easy_questions_correct: number
   medium_questions_attempted: number
@@ -49,19 +51,37 @@ interface IGCSETopic {
   color: string
 }
 
+interface QuestionAvailability {
+  total: number
+  byDifficulty: { easy: number, medium: number, hard: number }
+  byCategory: { core: number, extended: number }
+  baselineReady: number
+}
+
 export default function QuizTopicSelector() {
   const [topics, setTopics] = useState<IGCSETopic[]>([])
-  const [subtopics, setSubtopics] = useState<Record<string, IGCSESubtopic[]>>({})
-  const [progress, setProgress] = useState<Record<string, SubtopicProgress>>({})
-  const [loading, setLoading] = useState(true)
+  const [subtopics, setSubtopics] = useState<IGCSESubtopic[]>([])
+  const [progressData, setProgressData] = useState<SubtopicProgress[]>([])
+  const [questionAvailability, setQuestionAvailability] = useState<Record<string, QuestionAvailability>>({})
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set())
-  const [selectedPath, setSelectedPath] = useState<'Core' | 'Extended'>('Core')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // CRITICAL: Use fallback test user for development/testing
+  const fallbackUserId = "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+  
+  // Get user ID (with fallback for testing)
+  const getUserId = () => {
+    // Try to get from auth session first (when auth is implemented)
+    // For now, use fallback test user
+    return fallbackUserId
+  }
 
   const loadTopicsAndSubtopics = async () => {
     try {
       setLoading(true)
-
-      // Load topics
+      
+      // Load IGCSE topics
       const { data: topicsData, error: topicsError } = await supabase
         .from('igcse_topics')
         .select('*')
@@ -69,64 +89,67 @@ export default function QuizTopicSelector() {
 
       if (topicsError) throw topicsError
 
-      // Load subtopics filtered by Core/Extended
+      // Load IGCSE subtopics  
       const { data: subtopicsData, error: subtopicsError } = await supabase
         .from('igcse_subtopics')
         .select('*')
-        .eq('difficulty_level', selectedPath)
         .order('subtopic_code')
 
       if (subtopicsError) throw subtopicsError
 
-      // Group subtopics by topic
-      const subtopicsByTopic = (subtopicsData || []).reduce((acc, subtopic) => {
-        if (!acc[subtopic.topic_id]) {
-          acc[subtopic.topic_id] = []
-        }
-        acc[subtopic.topic_id].push({
-          id: subtopic.id,
-          topic_id: subtopic.topic_id,
-          subtopic_code: subtopic.subtopic_code,
-          title: subtopic.title,
-          description: subtopic.description || '',
-          paper_type: subtopic.difficulty_level as 'Core' | 'Extended'
-        })
-        return acc
-      }, {} as Record<string, IGCSESubtopic[]>)
-
-      setTopics(topicsData || [])
-      setSubtopics(subtopicsByTopic)
-
-      // Load user progress
-      const { data: { session } } = await supabase.auth.getSession()
-      const user = session?.user || { id: "a1b2c3d4-e5f6-7890-1234-567890abcdef" }
-      
-      if (!user) return
-
-      // Fix: Explicitly type the subtopic items
-      const allSubtopics = Object.values(subtopicsByTopic).flat() as IGCSESubtopic[]
-      const subtopicIds = allSubtopics.map(subtopic => subtopic.id)
-      
-      const { data: progressData, error } = await supabase
+      // Load user progress data
+      const userId = getUserId()
+      const { data: progressData, error: progressError } = await supabase
         .from('user_subtopic_progress')
         .select('*')
-        .eq('user_id', user.id)
-        .in('subtopic_id', subtopicIds)
+        .eq('user_id', userId)
 
-      if (error) {
-        console.error('Error loading progress:', error)
-        return
-      }
+      if (progressError) throw progressError
 
-      const progressBySubtopic = (progressData || []).reduce((acc, item) => {
-        acc[item.subtopic_id] = item
-        return acc
-      }, {} as Record<string, SubtopicProgress>)
+      // Load question availability data
+      const { data: availabilityData, error: availabilityError } = await supabase
+        .from('question_selection_helper')
+        .select('*')
 
-      setProgress(progressBySubtopic)
+      if (availabilityError) throw availabilityError
 
-    } catch (error) {
+      // Process availability data
+      const availabilityMap: Record<string, QuestionAvailability> = {}
+      availabilityData?.forEach(item => {
+        if (!availabilityMap[item.subtopic_id]) {
+          availabilityMap[item.subtopic_id] = {
+            total: 0,
+            byDifficulty: { easy: 0, medium: 0, hard: 0 },
+            byCategory: { core: 0, extended: 0 },
+            baselineReady: 0
+          }
+        }
+
+        const availability = availabilityMap[item.subtopic_id]
+        availability.total = item.total_questions || 0
+        
+        // Map difficulty levels
+        if (item.difficulty === 1) availability.byDifficulty.easy = item.question_count || 0
+        if (item.difficulty === 2) availability.byDifficulty.medium = item.question_count || 0  
+        if (item.difficulty === 3) availability.byDifficulty.hard = item.question_count || 0
+        
+        // Map paper types
+        if (item.paper_type === 'Core') availability.byCategory.core = item.question_count || 0
+        if (item.paper_type === 'Extended') availability.byCategory.extended = item.question_count || 0
+        
+        if (item.is_baseline_question) {
+          availability.baselineReady += item.question_count || 0
+        }
+      })
+
+      setTopics(topicsData || [])
+      setSubtopics(subtopicsData || [])
+      setProgressData(progressData || [])
+      setQuestionAvailability(availabilityMap)
+
+    } catch (error: any) {
       console.error('Error loading data:', error)
+      setError(error.message || 'Failed to load data')
     } finally {
       setLoading(false)
     }
@@ -134,154 +157,180 @@ export default function QuizTopicSelector() {
 
   useEffect(() => {
     loadTopicsAndSubtopics()
-  }, [selectedPath])
+  }, [])
 
   const toggleTopic = (topicId: string) => {
-    setExpandedTopics(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(topicId)) {
-        newSet.delete(topicId)
-      } else {
-        newSet.add(topicId)
-      }
-      return newSet
-    })
+    const newExpanded = new Set(expandedTopics)
+    if (newExpanded.has(topicId)) {
+      newExpanded.delete(topicId)
+    } else {
+      newExpanded.add(topicId)
+    }
+    setExpandedTopics(newExpanded)
   }
 
-  const getOverallProgress = () => {
-    const allSubtopics = Object.values(subtopics).flat()
-    const masteredCount = allSubtopics.filter(s => 
-      progress[s.id]?.mastery_level === 'Mastery' || progress[s.id]?.mastery_level === 'Proficient'
-    ).length
+  const getSubtopicsForTopic = (topicId: string): IGCSESubtopic[] => {
+    return subtopics.filter(subtopic => subtopic.topic_id === topicId)
+  }
 
-    return {
-      percentage: allSubtopics.length > 0 ? Math.round((masteredCount / allSubtopics.length) * 100) : 0
+  const getProgressForSubtopic = (subtopicId: string): SubtopicProgress | undefined => {
+    return progressData.find(progress => progress.subtopic_id === subtopicId)
+  }
+
+  const getAvailabilityForSubtopic = (subtopicId: string): QuestionAvailability => {
+    return questionAvailability[subtopicId] || {
+      total: 0,
+      byDifficulty: { easy: 0, medium: 0, hard: 0 },
+      byCategory: { core: 0, extended: 0 },
+      baselineReady: 0
     }
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading IGCSE Topics...</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-12">
+            <div className="text-2xl font-semibold text-gray-700 mb-4">
+              Loading IGCSE Mathematics Topics...
+            </div>
+            <div className="text-gray-500">
+              Preparing your personalized learning experience
+            </div>
+          </div>
         </div>
       </div>
     )
   }
 
-  const overallProgress = getOverallProgress()
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-100 p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-12">
+            <div className="text-2xl font-semibold text-red-700 mb-4">
+              Error Loading Data
+            </div>
+            <div className="text-red-600 mb-6">
+              {error}
+            </div>
+            <Button 
+              onClick={loadTopicsAndSubtopics}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Retry Loading
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="text-center space-y-4">
-        <h1 className="text-3xl font-bold text-gray-900">IGCSE Mathematics Topics</h1>
-        <p className="text-gray-600 max-w-2xl mx-auto">
-          Explore and master all IGCSE Mathematics topics. Track your progress and identify areas for improvement.
-        </p>
-        
-        {/* Path Selection */}
-        <div className="flex justify-center gap-2">
-          <Button
-            variant={selectedPath === 'Core' ? 'default' : 'outline'}
-            onClick={() => setSelectedPath('Core')}
-            size="sm"
-          >
-            Core Topics
-          </Button>
-          <Button
-            variant={selectedPath === 'Extended' ? 'default' : 'outline'}
-            onClick={() => setSelectedPath('Extended')}
-            size="sm"
-          >
-            Extended Topics
-          </Button>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            IGCSE Mathematics Learning Hub
+          </h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Master the complete Cambridge IGCSE Mathematics syllabus with our intelligent 
+            assessment system. Track your progress across all topics and difficulty levels.
+          </p>
         </div>
 
-        {/* Overall Progress */}
-        <div className="bg-white rounded-lg p-4 shadow-sm border">
-          <div className="text-sm text-gray-600 mb-2">Overall Progress</div>
-          <div className="text-2xl font-bold text-blue-600">{overallProgress.percentage}%</div>
+        {/* Summary Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardContent className="p-6 text-center">
+              <div className="text-3xl font-bold text-blue-600 mb-2">{topics.length}</div>
+              <div className="text-gray-600">Core Topics</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6 text-center">
+              <div className="text-3xl font-bold text-green-600 mb-2">{subtopics.length}</div>
+              <div className="text-gray-600">Subtopics</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6 text-center">
+              <div className="text-3xl font-bold text-purple-600 mb-2">
+                {progressData.filter(p => p.questions_attempted > 0).length}
+              </div>
+              <div className="text-gray-600">Started</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6 text-center">
+              <div className="text-3xl font-bold text-orange-600 mb-2">
+                {progressData.filter(p => p.mastery_percentage >= 75).length}
+              </div>
+              <div className="text-gray-600">Mastered</div>
+            </CardContent>
+          </Card>
         </div>
-      </div>
 
-      {/* Topics List */}
-      <div className="space-y-4">
-        {topics.map((topic) => {
-          const topicSubtopics = subtopics[topic.id] || []
-          const isExpanded = expandedTopics.has(topic.id)
-
-          return (
-            <Card key={topic.id} className="border-l-4" style={{ borderLeftColor: topic.color }}>
-              <CardHeader
-                className="cursor-pointer hover:bg-gray-50"
-                onClick={() => toggleTopic(topic.id)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div 
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                      style={{ backgroundColor: topic.color }}
-                    >
-                      {topic.topic_number}
+        {/* Topics and Subtopics */}
+        <div className="space-y-6">
+          {topics.map((topic) => {
+            const topicSubtopics = getSubtopicsForTopic(topic.id)
+            const isExpanded = expandedTopics.has(topic.id)
+            
+            return (
+              <Card key={topic.id} className="overflow-hidden">
+                <CardHeader 
+                  className="cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => toggleTopic(topic.id)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div 
+                        className="w-4 h-8 rounded"
+                        style={{ backgroundColor: topic.color }}
+                      />
+                      <div>
+                        <CardTitle className="text-xl">
+                          {topic.topic_number}. {topic.title}
+                        </CardTitle>
+                        <CardDescription className="mt-1">
+                          {topic.description}
+                        </CardDescription>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-lg">{topic.title}</CardTitle>
-                      <CardDescription>{topic.description}</CardDescription>
+                    <div className="flex items-center space-x-3">
+                      <Badge variant="secondary">
+                        {topicSubtopics.length} subtopics
+                      </Badge>
+                      {isExpanded ? <ChevronDown /> : <ChevronRight />}
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <Badge variant="outline">
-                      {topicSubtopics.length} {selectedPath} Subtopics
-                    </Badge>
-                    {isExpanded ? (
-                      <ChevronDown className="h-5 w-5 text-gray-400" />
-                    ) : (
-                      <ChevronRight className="h-5 w-5 text-gray-400" />
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-
-              {isExpanded && (
-                <CardContent className="pt-0">
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-gray-900 mb-3">
-                      {selectedPath} Subtopics ({topicSubtopics.length})
-                    </h4>
-                    {topicSubtopics.map((subtopic) => {
-                      const subtopicProgress = progress[subtopic.id]
-                      const availability = {
-                        total: 10,
-                        byDifficulty: { easy: 3, medium: 4, hard: 3 },
-                        byCategory: { core: 6, extended: 4 },
-                        baselineReady: 10
-                      }
-
-                      return (
-                        <SubtopicProgressCard 
-                          key={subtopic.id}
-                          subtopic={subtopic}
-                          progress={subtopicProgress}
-                          availability={availability}
-                        />
-                      )
-                    })}
-                  </div>
-                </CardContent>
-              )}
-            </Card>
-          )
-        })}
-      </div>
-
-      {/* View Complete Syllabus Button */}
-      <div className="text-center pt-6">
-        <Button variant="outline" size="lg">
-          <BookOpen className="h-5 w-5 mr-2" />
-          View Complete Syllabus Breakdown
-        </Button>
+                </CardHeader>
+                
+                {isExpanded && (
+                  <CardContent className="pt-0">
+                    <div className="space-y-6">
+                      {topicSubtopics.map((subtopic) => {
+                        const subtopicProgress = getProgressForSubtopic(subtopic.id)
+                        const availability = getAvailabilityForSubtopic(subtopic.id)
+                        
+                        return (
+                          <SubtopicProgressCard
+                            key={subtopic.id}
+                            subtopic={subtopic}
+                            progress={subtopicProgress}
+                            availability={availability}
+                          />
+                        )
+                      })}
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
