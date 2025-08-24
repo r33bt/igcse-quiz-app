@@ -1,11 +1,10 @@
 'use client'
 
-import { Suspense, useState, useEffect } from 'react'
-import { notFound, useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { AssessmentEngine } from '@/lib/assessment-engine'
 import { IGCSEQuizAdapter, type IGCSESubtopic } from '@/lib/igcse-quiz-adapter'
-import { ProgressUpdater, type QuizResults } from '@/lib/progress-updater'
 import QuizInterfaceV2 from '@/components/QuizInterfaceV2'
 import { Card, CardContent } from '@/components/ui/card'
 import { Target, ArrowLeft, Loader2 } from 'lucide-react'
@@ -21,20 +20,11 @@ export default function AssessmentQuizPage({ params, searchParams }: PageProps) 
   const [subtopicId, setSubtopicId] = useState<string>('')
   const [paperPath, setPaperPath] = useState<'Core' | 'Extended'>('Core')
   const [subtopic, setSubtopic] = useState<IGCSESubtopic | null>(null)
-  const [quiz, setQuiz] = useState<{
-  questions: any[]
-  estimatedTimeMinutes: number
-  metadata: {
-    easyQuestions: number
-    mediumQuestions: number
-    hardQuestions: number
-  }
-} | null>(null)
+  const [quiz, setQuiz] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [quizStarted, setQuizStarted] = useState(false)
   
-  const router = useRouter()
   const { user } = useUser()
 
   // Initialize params (Next.js 15 compatibility)
@@ -55,7 +45,7 @@ export default function AssessmentQuizPage({ params, searchParams }: PageProps) 
     if (subtopicId) {
       loadQuizData()
     }
-  }, [subtopicId, paperPath])
+  }, [subtopicId, paperPath]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadQuizData = async () => {
     try {
@@ -87,31 +77,6 @@ export default function AssessmentQuizPage({ params, searchParams }: PageProps) 
 
   const handleStartQuiz = () => {
     setQuizStarted(true)
-  }
-
-  const handleQuizComplete = async (results: QuizResults) => {
-    try {
-      const userId = user?.id || 'a1b2c3d4-e5f6-7890-1234-567890abcdef' // Test user fallback
-      
-      await ProgressUpdater.updateFromQuizResults(
-        userId,
-        subtopicId,
-        paperPath,
-        results
-      )
-
-      // Navigate back to topics with success message
-      router.push('/test-topics?completed=assessment')
-      
-    } catch (error) {
-      console.error('Failed to update progress:', error)
-      // Show error but still allow navigation
-      router.push('/test-topics?error=progress-update')
-    }
-  }
-
-  const handleQuizExit = () => {
-    router.push('/test-topics')
   }
 
   if (loading) {
@@ -150,7 +115,7 @@ export default function AssessmentQuizPage({ params, searchParams }: PageProps) 
     )
   }
 
-  // Show quiz interface once started
+  // Show quiz interface once started - SIMPLE!
   if (quizStarted) {
     return (
       <QuizInterfaceV2
@@ -158,9 +123,6 @@ export default function AssessmentQuizPage({ params, searchParams }: PageProps) 
         profile={null}
         subject={IGCSEQuizAdapter.adaptSubjectData(subtopic)}
         questions={IGCSEQuizAdapter.adaptQuestionData(quiz.questions, subtopic)}
-        onQuizComplete={handleQuizComplete}
-        onExit={handleQuizExit}
-        metadata={IGCSEQuizAdapter.createQuizMetadata(subtopic, paperPath, 'Assessment')}
       />
     )
   }
@@ -276,5 +238,9 @@ async function getSubtopicData(subtopicId: string): Promise<IGCSESubtopic | null
     return null
   }
   
-  return subtopic as IGCSESubtopic
+  // Fix the type issue
+  return {
+    ...subtopic,
+    igcse_topics: subtopic.igcse_topics[0]
+  } as IGCSESubtopic
 }

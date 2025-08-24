@@ -18,7 +18,7 @@ interface QuizQuestion {
   question_text: string
   options: string[]
   correct_answer: string
-  explanation?: string
+  explanation: string | null  // ✅ Change from string | undefined to string | null
   difficulty: number
   difficulty_level: number
   topic: string
@@ -26,6 +26,7 @@ interface QuizQuestion {
   created_at: string
   question_type: string
 }
+
 
 interface IGCSESubtopic {
   id: string
@@ -84,7 +85,7 @@ export class IGCSEQuizAdapter {
         ? q.options 
         : Object.values(q.options || {}),
       correct_answer: q.correct_answer,
-      explanation: q.explanation,
+      explanation: q.explanation || null,  // ✅ Convert undefined to null
       difficulty: q.difficulty,
       difficulty_level: q.difficulty, // Map to expected field
       topic: subtopic.title,
