@@ -30,14 +30,32 @@ export default function TestTopicSelector() {
     }
   }, [])
 
+  const handleLogout = () => {
+    // Simple redirect to login - no Supabase calls that might hang localhost
+    window.location.href = '/login'
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <AppNavigation title="Test Topic Selector" showBackButton={true} backUrl="/" />
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Quiz Topic Selector Test</h1>
+              <p className="text-sm text-gray-600">Test Environment</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+      
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Quiz Topic Selector Test
-          </h1>
           {completionMessage && (
             <div className="mb-4 p-3 bg-green-100 border border-green-300 rounded-lg text-green-800 font-medium">
               🎉 {completionMessage}
