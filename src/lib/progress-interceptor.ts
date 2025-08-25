@@ -21,6 +21,7 @@ interface QuizCompletionData {
   totalQuestions: number
   accuracy: number
   xpEarned: number
+  timeSpent?: number
 }
 
 export class ProgressInterceptor {
@@ -95,6 +96,9 @@ export class ProgressInterceptor {
           accuracy: Math.round(masteryData.overall.accuracy)
         })
       }
+
+      // Navigate to results page with quiz data
+      this.redirectToResults(completionData)
       
       return true
       
@@ -102,6 +106,38 @@ export class ProgressInterceptor {
       console.error('❌ Progress update failed:', error)
       return false
     }
+  }
+
+  private static redirectToResults(completionData: QuizCompletionData) {
+    const resultsUrl = new URL(`/quiz/results/${completionData.subtopicId}`, window.location.origin)
+    
+    // Pass quiz results as URL parameters
+    resultsUrl.searchParams.set('quizType', completionData.quizType)
+    resultsUrl.searchParams.set('paperPath', completionData.paperPath)
+    resultsUrl.searchParams.set('score', completionData.totalScore.toString())
+    resultsUrl.searchParams.set('total', completionData.totalQuestions.toString())
+    resultsUrl.searchParams.set('xpEarned', completionData.xpEarned.toString())
+    resultsUrl.searchParams.set('timeSpent', (completionData.timeSpent || 0).toString())
+    
+    // Add focus parameter if it's a practice quiz
+    if (completionData.quizType === 'Practice') {
+      const focusMap = {
+        1: 'Easy',
+        2: 'Medium', 
+        3: 'Hard'
+      }
+      const difficulties = completionData.results.map(r => r.difficulty)
+      const primaryDifficulty = difficulties.sort((a, b) => 
+        difficulties.filter(d => d === b).length - difficulties.filter(d => d === a).length
+      )[0]
+      
+      if (primaryDifficulty && focusMap[primaryDifficulty as keyof typeof focusMap]) {
+        resultsUrl.searchParams.set('focus', focusMap[primaryDifficulty as keyof typeof focusMap])
+      }
+    }
+    
+    // Navigate to results page
+    window.location.href = resultsUrl.toString()
   }
   
   private static calculateProgressStats(results: QuizResult[]) {
@@ -170,7 +206,8 @@ export class ProgressInterceptor {
       totalScore,
       totalQuestions: results.length,
       accuracy,
-      xpEarned: 0
+      xpEarned: totalScore * 10, // Simple XP calculation
+      timeSpent: results.reduce((total, r) => total + (r.timeSpent || 0), 0)
     }
   }
 }
