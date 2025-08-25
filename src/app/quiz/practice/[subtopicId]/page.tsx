@@ -51,13 +51,6 @@ export default function PracticeQuizPage({ params, searchParams }: PageProps) {
     }
   }, [subtopicId, paperPath, focus]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Store return URL in localStorage before starting quiz  
-  useEffect(() => {
-    if (quizStarted && subtopicId) {
-      localStorage.setItem('quiz_return_url', `/test-topics?expanded=${subtopicId}&completed=practice&focus=${focus || 'mixed'}&path=${paperPath.toLowerCase()}`)
-    }
-  }, [quizStarted, subtopicId, paperPath, focus])
-
   const loadQuizData = async () => {
     try {
       setLoading(true)
@@ -87,6 +80,20 @@ export default function PracticeQuizPage({ params, searchParams }: PageProps) {
   }
 
   const handleStartQuiz = () => {
+    // Store return URL immediately when quiz starts
+    const returnUrl = `/test-topics?expanded=${subtopicId}&completed=practice&focus=${focus || 'mixed'}&path=${paperPath.toLowerCase()}`
+    localStorage.setItem('quiz_return_url', returnUrl)
+    localStorage.setItem('quiz_context', JSON.stringify({
+      subtopicCode: subtopic?.subtopic_code || '',
+      subtopicTitle: subtopic?.title || '',
+      quizType: 'Practice',
+      paperPath: paperPath,
+      focus: focus || ''
+    }))
+    
+    console.log('🔄 Stored return URL:', returnUrl)
+    console.log('🔄 Stored quiz context:', localStorage.getItem('quiz_context'))
+    
     setQuizStarted(true)
   }
 
