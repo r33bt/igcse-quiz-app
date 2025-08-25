@@ -1,23 +1,32 @@
 "use client"
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import QuizTopicSelector from '@/components/QuizTopicSelector'
 import AppNavigation from '@/components/AppNavigation'
 
 export default function TestTopicSelector() {
-  // Handle auto-expansion of completed subtopic
+  const [completionMessage, setCompletionMessage] = useState<string>('')
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
-    const expandedSubtopicId = urlParams.get('expanded')
-    const justCompleted = urlParams.get('completed')
+    const expandedId = urlParams.get('expanded')
+    const completed = urlParams.get('completed')
+    const focus = urlParams.get('focus')
+    const path = urlParams.get('path')
     
-    if (expandedSubtopicId && justCompleted) {
-      // Auto-expand the subtopic that was just completed
-      // This depends on your current subtopic expansion implementation
-      // You may need to add state management for expanded subtopics
-      console.log('Auto-expanding subtopic:', expandedSubtopicId)
+    if (expandedId && completed) {
+      console.log('Auto-expanding subtopic:', expandedId)
       
-      // Clear URL parameters after handling
-      window.history.replaceState({}, '', '/test-topics')
+      // Create completion message
+      let message = `${completed} quiz completed! `
+      if (focus && focus !== 'mixed') message += `${focus} focus • `
+      if (path) message += `${path} paper`
+      setCompletionMessage(message)
+      
+      // Clear URL parameters after 5 seconds
+      setTimeout(() => {
+        window.history.replaceState({}, '', '/test-topics')
+        setCompletionMessage('')
+      }, 5000)
     }
   }, [])
 
@@ -29,6 +38,11 @@ export default function TestTopicSelector() {
           <h1 className="text-2xl font-bold text-gray-900 mb-4">
             Quiz Topic Selector Test
           </h1>
+          {completionMessage && (
+            <div className="mb-4 p-3 bg-green-100 border border-green-300 rounded-lg text-green-800 font-medium">
+              🎉 {completionMessage}
+            </div>
+          )}
         </div>
         <QuizTopicSelector />
       </main>

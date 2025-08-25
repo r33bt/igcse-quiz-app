@@ -221,7 +221,14 @@ export default function QuizInterfaceV2({
   }
 
   const goHome = () => {
-    router.push('/')
+    // Check for custom return URL from quiz pages
+    const customReturnUrl = localStorage.getItem('quiz_return_url')
+    if (customReturnUrl) {
+      localStorage.removeItem('quiz_return_url') // Clean up
+      router.push(customReturnUrl)
+    } else {
+      router.push('/') // Fallback to dashboard
+    }
   }
 
   // Show loading while questions are being randomized
@@ -307,7 +314,7 @@ export default function QuizInterfaceV2({
                 Take Another Quiz
               </button>
               <button
-                onClick={() => router.push('/')}
+                onClick={goHome}
                 className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-lg font-semibold text-lg"
               >
                 Back to Dashboard
